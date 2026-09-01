@@ -5,13 +5,8 @@ import { LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Bell } from "@/components/layout/Bell";
 import { sectionTitle } from "@/lib/nav";
+import { esAdministrativo, ROL_LABEL } from "@/lib/roles";
 import type { User } from "@/types";
-
-const ROL_LABEL: Record<string, string> = {
-  ADMIN: "Soporte",
-  MANAGER: "Administrador",
-  ASSISTANT: "Asistente",
-};
 
 const AVATAR_COLORS = [
   "bg-teal-600",
@@ -56,7 +51,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
       </h1>
 
       <div className="ml-auto flex items-center gap-2 md:gap-3">
-        <Bell />
+        {esAdministrativo(user) && <Bell />}
         {user && (
           <>
             <div className="hidden text-right sm:block">

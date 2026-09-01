@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PipelineTimeline } from "@/components/pipeline/PipelineTimeline";
 import { Card } from "@/components/ui/Card";
-import { Select } from "@/components/ui/Field";
+import { PacientePicker } from "@/components/ui/PacientePicker";
 import { listVentas } from "@/services/ventas";
 import { listPacientes } from "@/services/pacientes";
 import type { Paciente, Venta } from "@/types";
@@ -68,18 +68,11 @@ export default function PagosPipelinePage() {
 
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
         <div className="sm:col-span-1">
-          <Select
-            label="Paciente"
+          <PacientePicker
+            pacientes={pacientes}
             value={pacienteId}
-            onChange={(e) => setPacienteId(e.target.value)}
-          >
-            <option value="">Todos los pacientes</option>
-            {pacientes.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nombres} {p.apellido_paterno} {p.apellido_materno}
-              </option>
-            ))}
-          </Select>
+            onChange={setPacienteId}
+          />
         </div>
         <div className="rounded-2xl border border-slate-200/70 bg-white p-3 text-center shadow-sm">
           <p className="text-xs text-slate-400">Total pagado</p>

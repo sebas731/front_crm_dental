@@ -2,6 +2,7 @@
 
 import { Filter, X } from "lucide-react";
 import { Input, Select } from "@/components/ui/Field";
+import { PacientePicker } from "@/components/ui/PacientePicker";
 import { ServicioSelect } from "@/components/servicios/ServicioSelect";
 import { ESTADO_CITA } from "@/lib/estados";
 import {
@@ -41,18 +42,11 @@ export function CitasFilterBar({
         )}
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Select
-          label="Paciente"
+        <PacientePicker
+          pacientes={pacientes}
           value={filtros.paciente}
-          onChange={(e) => set({ paciente: e.target.value })}
-        >
-          <option value="">Todos</option>
-          {pacientes.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombres} {p.apellido_paterno}
-            </option>
-          ))}
-        </Select>
+          onChange={(id) => set({ paciente: id })}
+        />
         <ServicioSelect
           label="Servicio"
           servicios={servicios}

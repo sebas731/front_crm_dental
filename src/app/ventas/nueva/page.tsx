@@ -8,6 +8,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Field";
+import { PacientePicker } from "@/components/ui/PacientePicker";
 import { ServicioSelect } from "@/components/servicios/ServicioSelect";
 import { generarCuotas, type Frecuencia } from "@/lib/cuotas";
 import { listServicios } from "@/services/citas";
@@ -87,6 +88,11 @@ export default function NuevaVentaPage() {
   );
   const total = Math.max(0, base - totalDesc);
 
+  const puedeGuardar =
+    !!paciente &&
+    (servRows.some((r) => r.servicio) || adicRows.some((r) => r.nombre)) &&
+    total > 0;
+
   const cuotasPreview = useMemo(
     () =>
       generarCuotas(total, {
@@ -162,17 +168,14 @@ export default function NuevaVentaPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Card title="Paciente">
-            <Select
+            <PacientePicker
+              label=""
+              pacientes={pacientes}
               value={paciente}
-              onChange={(e) => setPaciente(e.target.value)}
-            >
-              <option value="">Seleccionar…</option>
-              {pacientes.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombres} {p.apellido_paterno} {p.apellido_materno}
-                </option>
-              ))}
-            </Select>
+              onChange={setPaciente}
+              allowTodos={false}
+              placeholder="Buscar paciente por nombre o DNI…"
+            />
           </Card>
 
           <Card
@@ -235,6 +238,8 @@ export default function NuevaVentaPage() {
                   <Input
                     label="Precio"
                     type="number"
+                    step="0.01"
+                    min="0"
                     className="col-span-3"
                     value={r.precio}
                     onChange={(e) =>
@@ -324,6 +329,8 @@ export default function NuevaVentaPage() {
                   <Input
                     label="Valor"
                     type="number"
+                    step="0.01"
+                    min="0"
                     className="col-span-2"
                     value={r.valor}
                     onChange={(e) =>
@@ -402,6 +409,8 @@ export default function NuevaVentaPage() {
                   <Input
                     label="Valor"
                     type="number"
+                    step="0.01"
+                    min="0"
                     className="col-span-2"
                     value={r.valor}
                     onChange={(e) =>
@@ -430,7 +439,7 @@ export default function NuevaVentaPage() {
         </div>
 
         {/* Resumen + cuotas */}
-        <div className="space-y-4">
+        <div className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           <Card title="Resumen">
             <div className="space-y-1 text-sm">
               <Fila label="Servicios" valor={subServicios} />
@@ -500,7 +509,11 @@ export default function NuevaVentaPage() {
           </Card>
 
           {error && <p className="text-sm text-rose-500">{error}</p>}
-          <Button className="w-full" onClick={handleSubmit} disabled={saving}>
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={saving || !puedeGuardar}
+          >
             {saving ? "Registrando…" : "Registrar venta"}
           </Button>
         </div>

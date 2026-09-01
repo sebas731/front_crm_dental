@@ -2,25 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck, Stethoscope, X } from "lucide-react";
-import { isActive, NAV_ITEMS } from "@/lib/nav";
+import { ShieldCheck, X } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { Logo } from "@/components/ui/Logo";
+import { isActive, navItemsFor } from "@/lib/nav";
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const items = navItemsFor(user);
 
   return (
     <div className="flex h-full flex-col">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b border-slate-200/70 px-5">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-600 text-white">
-          <Stethoscope className="h-5 w-5" />
-        </span>
-        <span className="text-lg font-semibold text-slate-800">DENTAL SAC</span>
+      <div className="flex h-16 items-center border-b border-slate-200/70 px-5">
+        <Logo size={34} />
       </div>
 
       {/* Navegación */}
       <nav className="flex-1 space-y-1 p-3">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {items.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname);
           return (
             <Link

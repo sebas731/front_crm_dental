@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Field";
+import { TagInput } from "@/components/ui/TagInput";
+import { mensajeError } from "@/lib/apiError";
 import { actualizarAntecedentes, crearAntecedentes } from "@/services/historia";
 import type { AntecedentesInput, AntecedentesPersonales } from "@/types";
 
@@ -11,25 +13,53 @@ type TextKey = Exclude<
   "cartilla_vacunacion_completa" | "lactancia_materna"
 >;
 
-const CAMPOS: { key: TextKey; label: string }[] = [
-  { key: "alergias", label: "Alergias (medicamento, alimento o sustancia)" },
+// `tag: true` → campo de etiquetas (chips tipo Facebook).
+const CAMPOS: { key: TextKey; label: string; tag?: boolean }[] = [
+  {
+    key: "alergias",
+    label: "Alergias (medicamento, alimento o sustancia)",
+    tag: true,
+  },
   {
     key: "enfermedades_pulmonares",
     label: "Pulmonares (TBC, asma, influenza…)",
+    tag: true,
   },
-  { key: "enfermedades_cardiacas", label: "Cardíacas (hipertensión, soplo…)" },
+  {
+    key: "enfermedades_cardiacas",
+    label: "Cardíacas (hipertensión, soplo…)",
+    tag: true,
+  },
   {
     key: "enfermedades_neurologicas",
     label: "Neurológicas (epilepsia, Parkinson…)",
+    tag: true,
   },
-  { key: "enfermedades_hepaticas", label: "Hepáticas (hepatitis, cirrosis…)" },
-  { key: "enfermedades_renales", label: "Renales (cálculos, infecciones…)" },
-  { key: "sistema_endocrino", label: "Endocrino (diabetes, hipotiroidismo…)" },
-  { key: "musculo_esqueletico", label: "Músculo-esquelético (artritis…)" },
-  { key: "otras_enfermedades", label: "Otras enfermedades" },
+  {
+    key: "enfermedades_hepaticas",
+    label: "Hepáticas (hepatitis, cirrosis…)",
+    tag: true,
+  },
+  {
+    key: "enfermedades_renales",
+    label: "Renales (cálculos, infecciones…)",
+    tag: true,
+  },
+  {
+    key: "sistema_endocrino",
+    label: "Endocrino (diabetes, hipotiroidismo…)",
+    tag: true,
+  },
+  {
+    key: "musculo_esqueletico",
+    label: "Músculo-esquelético (artritis…)",
+    tag: true,
+  },
+  { key: "otras_enfermedades", label: "Otras enfermedades", tag: true },
   {
     key: "enfermedad_cronica_y_tratamiento",
     label: "Enfermedad crónica y tratamiento",
+    tag: true,
   },
   { key: "problema_comportamiento", label: "Problemas de comportamiento" },
   { key: "experiencia_dental_previa", label: "Experiencia dental previa" },
@@ -40,10 +70,12 @@ export function AntecedentesPanel({
   historiaId,
   antecedentes,
   onSaved,
+  readOnly = false,
 }: {
   historiaId: string;
   antecedentes: AntecedentesPersonales | null;
   onSaved: () => void | Promise<void>;
+  readOnly?: boolean;
 }) {
   const [form, setForm] = useState<AntecedentesInput>({
     alergias: antecedentes?.alergias ?? "",
@@ -65,23 +97,27 @@ export function AntecedentesPanel({
       antecedentes?.cartilla_vacunacion_completa ?? false,
   });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const set = (patch: Partial<AntecedentesInput>) =>
     setForm((f) => ({ ...f, ...patch }));
 
   async function handleSave() {
     setSaving(true);
+    setError(null);
     try {
       if (antecedentes) await actualizarAntecedentes(antecedentes.id, form);
       else await crearAntecedentes(historiaId, form);
       await onSaved();
+    } catch (err) {
+      setError(mensajeError(err, "No se pudieron guardar los antecedentes."));
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="space-y-3">
+    <fieldset disabled={readOnly} className="m-0 space-y-3 border-0 p-0">
       <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
         <input
           type="checkbox"
@@ -101,24 +137,37 @@ export function AntecedentesPanel({
       />
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {CAMPOS.map(({ key, label }) => (
-          <Textarea
-            key={key}
-            label={label}
-            rows={2}
-            value={(form[key] as string) ?? ""}
-            onChange={(e) => set({ [key]: e.target.value })}
-          />
-        ))}
+        {CAMPOS.map(({ key, label, tag }) =>
+          tag ? (
+            <TagInput
+              key={key}
+              label={label}
+              value={(form[key] as string) ?? ""}
+              onChange={(v) => set({ [key]: v })}
+            />
+          ) : (
+            <Textarea
+              key={key}
+              label={label}
+              rows={2}
+              value={(form[key] as string) ?? ""}
+              onChange={(e) => set({ [key]: e.target.value })}
+            />
+          ),
+        )}
       </div>
 
-      <Button onClick={handleSave} disabled={saving}>
-        {saving
-          ? "Guardando…"
-          : antecedentes
-            ? "Actualizar antecedentes"
-            : "Guardar antecedentes"}
-      </Button>
-    </div>
+      {error && <p className="text-sm text-rose-500">{error}</p>}
+
+      {!readOnly && (
+        <Button onClick={handleSave} disabled={saving}>
+          {saving
+            ? "Guardando…"
+            : antecedentes
+              ? "Actualizar antecedentes"
+              : "Guardar antecedentes"}
+        </Button>
+      )}
+    </fieldset>
   );
 }

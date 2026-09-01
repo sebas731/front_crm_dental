@@ -9,11 +9,21 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
 import { CitaCardList } from "@/components/citas/CitaCardList";
 import { CitasFilterBar } from "@/components/citas/CitasFilterBar";
+import { PeriodoTabs } from "@/components/citas/PeriodoTabs";
 import { WhatsAppButton } from "@/components/citas/WhatsAppButton";
 import { ServicioSelect } from "@/components/servicios/ServicioSelect";
+import { useAuth } from "@/context/AuthContext";
 import { ESTADO_CITA } from "@/lib/estados";
-import { FILTROS_VACIOS, filterCitas, type CitaFiltros } from "@/lib/filtros";
-import { ApiError } from "@/services/api";
+import {
+  FILTROS_VACIOS,
+  filterCitas,
+  periodoDeRango,
+  rangoDePeriodo,
+  type CitaFiltros,
+  type PeriodoRango,
+} from "@/lib/filtros";
+import { esMedico, puedeCrearCitas } from "@/lib/roles";
+import { mensajeError } from "@/lib/apiError";
 import {
   createCita,
   listCitas,
@@ -50,6 +60,7 @@ const EMPTY: CitaInput = {
 };
 
 export default function CitasPage() {
+  const { user } = useAuth();
   const [citas, setCitas] = useState<Cita[]>([]);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [medicos, setMedicos] = useState<Medico[]>([]);
@@ -59,8 +70,18 @@ export default function CitasPage() {
   const [form, setForm] = useState<CitaInput>(EMPTY);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [filtros, setFiltros] = useState<CitaFiltros>(FILTROS_VACIOS);
+  // Por defecto abre en "Esta semana" para no acumular todas las citas.
+  const [filtros, setFiltros] = useState<CitaFiltros>(() => ({
+    ...FILTROS_VACIOS,
+    ...rangoDePeriodo("semana"),
+  }));
   const [vista, setVista] = useState<"tabla" | "tarjetas">("tabla");
+
+  const periodoActivo = periodoDeRango(filtros);
+
+  function seleccionarPeriodo(p: PeriodoRango) {
+    setFiltros((f) => ({ ...f, ...rangoDePeriodo(p) }));
+  }
 
   async function load() {
     const [c, p, m, s] = await Promise.all([
@@ -108,10 +129,17 @@ export default function CitasPage() {
     return s ? s.nombre : "—";
   };
 
-  const filtradas = useMemo(
-    () => filterCitas(citas, filtros),
-    [citas, filtros],
-  );
+  // El médico solo ve sus propias citas.
+  const miMedicoId = esMedico(user)
+    ? (medicos.find((m) => m.usuario === user?.id)?.id ?? "__ninguno__")
+    : null;
+
+  const filtradas = useMemo(() => {
+    const base = miMedicoId
+      ? citas.filter((c) => c.medico === miMedicoId)
+      : citas;
+    return filterCitas(base, filtros);
+  }, [citas, filtros, miMedicoId]);
 
   function update<K extends keyof CitaInput>(key: K, value: CitaInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -127,11 +155,7 @@ export default function CitasPage() {
       setShowForm(false);
       await load();
     } catch (err) {
-      setError(
-        err instanceof ApiError && typeof err.data === "object"
-          ? JSON.stringify(err.data)
-          : "No se pudo crear la cita.",
-      );
+      setError(mensajeError(err, "No se pudo crear la cita."));
     } finally {
       setSaving(false);
     }
@@ -160,12 +184,14 @@ export default function CitasPage() {
               <LayoutGrid className="h-4 w-4" />
             </button>
           </div>
-          <Button
-            onClick={() => setShowForm((v) => !v)}
-            disabled={pacientes.length === 0 || medicos.length === 0}
-          >
-            {showForm ? "Cancelar" : "Nueva cita"}
-          </Button>
+          {puedeCrearCitas(user) && (
+            <Button
+              onClick={() => setShowForm((v) => !v)}
+              disabled={pacientes.length === 0 || medicos.length === 0}
+            >
+              {showForm ? "Cancelar" : "Nueva cita"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -248,6 +274,10 @@ export default function CitasPage() {
           </div>
         </form>
       )}
+
+      <div className="mb-4">
+        <PeriodoTabs activo={periodoActivo} onSelect={seleccionarPeriodo} />
+      </div>
 
       <CitasFilterBar
         filtros={filtros}

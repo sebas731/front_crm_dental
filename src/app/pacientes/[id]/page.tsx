@@ -1,33 +1,40 @@
 "use client";
 
-import Link from "next/link";
 import { use, useEffect, useState } from "react";
-import { ClipboardList, FileText, Stethoscope } from "lucide-react";
+import { ClipboardList, FileText, Stethoscope, Wallet } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { BackButton } from "@/components/ui/BackButton";
 import { AntecedentesPanel } from "@/components/historia/AntecedentesPanel";
 import { AtencionesTab } from "@/components/historia/AtencionesTab";
 import { DocumentosPanel } from "@/components/historia/DocumentosPanel";
 import { FichaPaciente } from "@/components/historia/FichaPaciente";
+import { HistorialPagos } from "@/components/historia/HistorialPagos";
 import { OdontogramaEditor } from "@/components/odontograma/OdontogramaEditor";
+import { PacienteForm } from "@/components/pacientes/PacienteForm";
 import { Button } from "@/components/ui/Button";
+import { CargaEstado } from "@/components/ui/CargaEstado";
 import { Card } from "@/components/ui/Card";
+import { useAuth } from "@/context/AuthContext";
+import { ApiError } from "@/services/api";
+import { esAdministrativo, puedeRegistrarPacientes } from "@/lib/roles";
 import { createHistoria, getHistoriaByPaciente } from "@/services/historia";
 import {
   listCitasByPaciente,
   listMedicos,
   listServicios,
 } from "@/services/citas";
-import { getPaciente } from "@/services/pacientes";
+import { getPaciente, updatePaciente } from "@/services/pacientes";
+import { listVentas } from "@/services/ventas";
 import type {
   Cita,
   HistoriaClinica,
   Medico,
   Paciente,
   ServicioDental,
+  Venta,
 } from "@/types";
 
-type Tab = "historia" | "atenciones";
+type Tab = "historia" | "atenciones" | "pagos";
 
 export default function PacienteDetailPage({
   params,
@@ -35,13 +42,21 @@ export default function PacienteDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { user } = useAuth();
+  const puedeEditar = puedeRegistrarPacientes(user);
+  const puedeVerPagos = esAdministrativo(user); // finanzas solo administrativos
   const [paciente, setPaciente] = useState<Paciente | null>(null);
   const [historia, setHistoria] = useState<HistoriaClinica | null>(null);
   const [citas, setCitas] = useState<Cita[]>([]);
   const [medicos, setMedicos] = useState<Medico[]>([]);
   const [servicios, setServicios] = useState<ServicioDental[]>([]);
+  const [ventas, setVentas] = useState<Venta[]>([]);
   const [tab, setTab] = useState<Tab>("historia");
+  const [editando, setEditando] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [errorCarga, setErrorCarga] = useState<"notfound" | "server" | null>(
+    null,
+  );
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -62,16 +77,39 @@ export default function PacienteDetailPage({
         setServicios(s.results);
         setLoading(false);
       })
-      .catch(() => {
-        if (active) setLoading(false);
+      .catch((err) => {
+        if (!active) return;
+        setErrorCarga(
+          err instanceof ApiError && err.status === 404 ? "notfound" : "server",
+        );
+        setLoading(false);
       });
     return () => {
       active = false;
     };
   }, [id]);
 
+  useEffect(() => {
+    if (!puedeVerPagos) return;
+    let active = true;
+    listVentas({ paciente: id })
+      .then((r) => {
+        if (active) setVentas(r.results);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [id, puedeVerPagos]);
+
   async function reloadHistoria() {
     setHistoria(await getHistoriaByPaciente(id));
+  }
+
+  async function handleUpdate(data: Parameters<typeof updatePaciente>[1]) {
+    const updated = await updatePaciente(id, data);
+    setPaciente(updated);
+    setEditando(false);
   }
 
   async function handleCrearHistoria() {
@@ -88,21 +126,16 @@ export default function PacienteDetailPage({
     }
   }
 
-  if (loading) {
+  if (loading || errorCarga || !paciente) {
     return (
-      <AppShell>
-        <p className="text-slate-500">Cargando…</p>
-      </AppShell>
-    );
-  }
-  if (!paciente) {
-    return (
-      <AppShell>
-        <p className="text-slate-500">Paciente no encontrado.</p>
-        <Link href="/pacientes" className="text-teal-600 underline">
-          Volver
-        </Link>
-      </AppShell>
+      <CargaEstado
+        estado={
+          loading ? "cargando" : errorCarga === "server" ? "server" : "notfound"
+        }
+        entidad="Paciente"
+        volverHref="/pacientes"
+        volverLabel="Volver a pacientes"
+      />
     );
   }
 
@@ -129,6 +162,16 @@ export default function PacienteDetailPage({
       icon: Stethoscope,
       sub: `${atendidasCount} atendidas`,
     },
+    ...(puedeVerPagos
+      ? [
+          {
+            key: "pagos" as Tab,
+            label: "Historial de pagos",
+            icon: Wallet,
+            sub: `${ventas.length} venta(s)`,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -138,7 +181,26 @@ export default function PacienteDetailPage({
         <h1 className="text-xl font-semibold text-slate-800 md:text-2xl">
           Ficha del paciente
         </h1>
+        {puedeEditar && (
+          <Button
+            variant="secondary"
+            className="ml-auto px-3 py-1.5 text-xs"
+            onClick={() => setEditando((v) => !v)}
+          >
+            {editando ? "Cancelar" : "Editar datos"}
+          </Button>
+        )}
       </div>
+
+      {editando && puedeEditar && (
+        <Card title="Editar datos del paciente" className="mb-4">
+          <PacienteForm
+            initial={paciente}
+            submitLabel="Guardar cambios"
+            onSubmit={handleUpdate}
+          />
+        </Card>
+      )}
 
       <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
         {/* Izquierda: datos del paciente */}
@@ -148,7 +210,11 @@ export default function PacienteDetailPage({
 
         {/* Derecha: tarjetas + contenido */}
         <div className="space-y-4 lg:col-span-2">
-          <div className="grid grid-cols-2 gap-3 md:gap-4">
+          <div
+            className={`grid gap-3 md:gap-4 ${
+              tabs.length > 2 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2"
+            }`}
+          >
             {tabs.map(({ key, label, icon: Icon, sub }) => {
               const active = tab === key;
               return (
@@ -195,6 +261,7 @@ export default function PacienteDetailPage({
                     historiaId={historia.id}
                     antecedentes={historia.antecedentes}
                     onSaved={reloadHistoria}
+                    readOnly={!puedeEditar}
                   />
                 </Card>
                 <Card title="Documentos">
@@ -202,6 +269,7 @@ export default function PacienteDetailPage({
                     historiaId={historia.id}
                     documentos={historia.documentos}
                     onChange={reloadHistoria}
+                    readOnly={!puedeEditar}
                   />
                 </Card>
                 <Card title="Odontograma">
@@ -209,6 +277,7 @@ export default function PacienteDetailPage({
                     historiaId={historia.id}
                     odontograma={odontograma}
                     onSaved={reloadHistoria}
+                    readOnly={!puedeEditar}
                   />
                 </Card>
               </div>
@@ -221,6 +290,12 @@ export default function PacienteDetailPage({
                 medicos={medicos}
                 servicios={servicios}
               />
+            </Card>
+          )}
+
+          {tab === "pagos" && puedeVerPagos && (
+            <Card title="Historial de pagos">
+              <HistorialPagos ventas={ventas} servicios={servicios} />
             </Card>
           )}
         </div>

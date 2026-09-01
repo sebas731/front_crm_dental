@@ -1,25 +1,30 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { puedeVerRuta } from "@/lib/nav";
 
 /**
  * Layout de la app autenticada: sidebar + topbar + contenido.
- * Redirige a /login cuando no hay usuario.
+ * Redirige a /login cuando no hay usuario y bloquea rutas sin permiso.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [drawer, setDrawer] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
-  }, [loading, user, router]);
+    else if (!loading && user && !puedeVerRuta(pathname, user)) {
+      router.replace("/");
+    }
+  }, [loading, user, router, pathname]);
 
-  if (loading || !user) {
+  if (loading || !user || !puedeVerRuta(pathname, user)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100 text-slate-500">
         Cargando…

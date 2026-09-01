@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "DENTAL SAC",
-  description: "Gestión de pacientes, historias clínicas y citas.",
+  title: "DENTAL STUDIO",
+  description: "Gestión de pacientes, historias clínicas, citas y ventas.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

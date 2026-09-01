@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input, Select } from "@/components/ui/Field";
 import { FileInput } from "@/components/ui/FileInput";
+import { useAuth } from "@/context/AuthContext";
 import { ESTADO_CUOTA } from "@/lib/estados";
+import { puedeGestionarPagos } from "@/lib/roles";
 import { registrarPago, updateCuota, validarPago } from "@/services/ventas";
 import type { Cuota, MetodoPago } from "@/types";
 
@@ -22,10 +24,14 @@ const METODOS: MetodoPago[] = [
 export function CuotaRow({
   cuota,
   onChanged,
+  readOnly = false,
 }: {
   cuota: Cuota;
   onChanged: () => void | Promise<void>;
+  readOnly?: boolean;
 }) {
+  const { user } = useAuth();
+  const puedePagar = puedeGestionarPagos(user) && !readOnly;
   const est = ESTADO_CUOTA[cuota.estado];
   const pendiente = cuota.estado === "PENDIENTE";
 
@@ -107,7 +113,7 @@ export function CuotaRow({
           </span>
           {p.validado ? (
             <Badge label="Validado" color="#10b981" />
-          ) : (
+          ) : puedePagar ? (
             <Button
               variant="secondary"
               className="px-3 py-1.5 text-xs"
@@ -118,12 +124,14 @@ export function CuotaRow({
             >
               Validar
             </Button>
+          ) : (
+            <Badge label="Sin validar" color="#f59e0b" />
           )}
         </div>
       ))}
 
       {/* Acciones para cuota pendiente */}
-      {pendiente && (
+      {pendiente && !readOnly && (
         <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-slate-100 pt-3">
           <Input
             label="Reprogramar a"
@@ -141,7 +149,7 @@ export function CuotaRow({
             Reprogramar
           </Button>
           <span className="flex-1" />
-          {!pagando && (
+          {puedePagar && !pagando && (
             <Button
               className="px-3 py-1.5 text-xs"
               onClick={() => setPagando(true)}

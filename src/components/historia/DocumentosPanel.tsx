@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
 import { FileInput } from "@/components/ui/FileInput";
+import { mensajeError } from "@/lib/apiError";
 import { eliminarDocumento, subirDocumento } from "@/services/historia";
 import type { DocumentoHC, DocumentoTipo } from "@/types";
 
@@ -21,10 +22,12 @@ export function DocumentosPanel({
   historiaId,
   documentos,
   onChange,
+  readOnly = false,
 }: {
   historiaId: string;
   documentos: DocumentoHC[];
   onChange: () => void | Promise<void>;
+  readOnly?: boolean;
 }) {
   const [tipo, setTipo] = useState<DocumentoTipo>("RADIOGRAFIA");
   const [titulo, setTitulo] = useState("");
@@ -49,16 +52,20 @@ export function DocumentosPanel({
       setArchivo(null);
       setFileKey((k) => k + 1);
       await onChange();
-    } catch {
-      setError("No se pudo subir el documento.");
+    } catch (err) {
+      setError(mensajeError(err, "No se pudo subir el documento."));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id: string) {
-    await eliminarDocumento(id);
-    await onChange();
+    try {
+      await eliminarDocumento(id);
+      await onChange();
+    } catch (err) {
+      setError(mensajeError(err, "No se pudo eliminar el documento."));
+    }
   }
 
   return (
@@ -80,18 +87,23 @@ export function DocumentosPanel({
               >
                 {TIPOS[d.tipo]} · {d.titulo || "archivo"}
               </a>
-              <Button
-                variant="danger"
-                className="px-3 py-1.5 text-xs"
-                onClick={() => handleDelete(d.id)}
-              >
-                Eliminar
-              </Button>
+              {!readOnly && (
+                <Button
+                  variant="danger"
+                  className="px-3 py-1.5 text-xs"
+                  onClick={() => handleDelete(d.id)}
+                >
+                  Eliminar
+                </Button>
+              )}
             </li>
           ))}
         </ul>
       )}
 
+      {readOnly && error && <p className="text-sm text-rose-500">{error}</p>}
+
+      {!readOnly && (
       <form
         onSubmit={handleUpload}
         className="border-border grid grid-cols-2 items-end gap-2 border-t pt-3"
@@ -122,6 +134,7 @@ export function DocumentosPanel({
           </Button>
         </div>
       </form>
+      )}
     </div>
   );
 }

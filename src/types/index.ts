@@ -26,7 +26,7 @@ export interface TokenPair {
   refresh: string;
 }
 
-export type UserRol = "ADMIN" | "MANAGER" | "ASSISTANT";
+export type UserRol = "ADMIN" | "MANAGER" | "ASSISTANT" | "MEDICO";
 
 export interface User {
   id: number;
@@ -126,6 +126,16 @@ export interface Medico extends BaseModel {
   activo: boolean;
 }
 
+export type MedicoInput = {
+  nombres: string;
+  apellidos: string;
+  especialidad?: string;
+  colegiatura?: string;
+  telefono?: string;
+  correo?: string;
+  activo?: boolean;
+};
+
 export interface ServicioDental extends BaseModel {
   padre: string | null;
   nombre: string;
@@ -165,6 +175,13 @@ export interface Cita extends BaseModel {
 }
 
 export type CitaInput = Partial<Omit<Cita, keyof BaseModel | "atencion">>;
+
+export interface NotaAgenda extends BaseModel {
+  fecha: string;
+  hora: string; // "HH:MM:SS"
+  texto: string;
+  autor: number | null;
+}
 
 // ---------------------------------------------------------------------------
 // Ventas y cobranza
@@ -237,6 +254,8 @@ export interface Venta extends BaseModel {
   total_pagado: string;
   saldo: string;
   total_calculado: string;
+  editable: boolean;
+  tiene_pagos_validados: boolean;
 }
 
 // ---------------------------------------------------------------------------

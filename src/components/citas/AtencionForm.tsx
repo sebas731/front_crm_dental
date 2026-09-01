@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Field";
+import { mensajeError } from "@/lib/apiError";
 import { ESTADO_ATENCION } from "@/lib/estados";
-import { ApiError } from "@/services/api";
 import { atenderCita } from "@/services/citas";
 import type {
   AtencionInput,
@@ -53,11 +53,7 @@ export function AtencionForm({
       const updated = await atenderCita(cita.id, form);
       onSaved(updated);
     } catch (err) {
-      setError(
-        err instanceof ApiError && typeof err.data === "object"
-          ? JSON.stringify(err.data)
-          : "No se pudo registrar la atención.",
-      );
+      setError(mensajeError(err, "No se pudo registrar la atención."));
     } finally {
       setSaving(false);
     }

@@ -64,8 +64,12 @@ export interface ApiFetchOptions extends Omit<RequestInit, "body"> {
   _retry?: boolean;
 }
 
-/** Try to obtain a new access token using the stored refresh token. */
-async function refreshAccessToken(): Promise<string | null> {
+// Candado de concurrencia: si varias peticiones reciben 401 a la vez,
+// comparten un ÚNICO refresh en curso en vez de dispararlo en paralelo
+// (varios refresh simultáneos podían invalidarse entre sí y cerrar la sesión).
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function doRefresh(): Promise<string | null> {
   const refresh = getRefreshToken();
   if (!refresh) return null;
 
@@ -83,6 +87,16 @@ async function refreshAccessToken(): Promise<string | null> {
   const data = (await res.json()) as { access: string };
   setToken(data.access);
   return data.access;
+}
+
+/** Try to obtain a new access token using the stored refresh token. */
+function refreshAccessToken(): Promise<string | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = doRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
 }
 
 /**

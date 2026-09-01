@@ -1,13 +1,23 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
+import { Copy, Lock, Ban } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { AdicionalesEditor } from "@/components/ventas/AdicionalesEditor";
 import { CuotaRow } from "@/components/ventas/CuotaRow";
+import { DescuentosEditor } from "@/components/ventas/DescuentosEditor";
+import { GenerarCuotas } from "@/components/ventas/GenerarCuotas";
+import { ServiciosEditor } from "@/components/ventas/ServiciosEditor";
+import { VentaFactoresReadOnly } from "@/components/ventas/VentaFactoresReadOnly";
 import { Badge } from "@/components/ui/Badge";
 import { BackButton } from "@/components/ui/BackButton";
+import { Button } from "@/components/ui/Button";
+import { CargaEstado } from "@/components/ui/CargaEstado";
 import { Card } from "@/components/ui/Card";
 import { ESTADO_VENTA, TIPO_PAGO } from "@/lib/estados";
-import { getVenta } from "@/services/ventas";
+import { ApiError } from "@/services/api";
+import { anularVenta, duplicarVenta, getVenta } from "@/services/ventas";
 import { listPacientes } from "@/services/pacientes";
 import { listServicios } from "@/services/citas";
 import type { Paciente, ServicioDental, Venta } from "@/types";
@@ -18,10 +28,15 @@ export default function VentaDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const [venta, setVenta] = useState<Venta | null>(null);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [servicios, setServicios] = useState<ServicioDental[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorCarga, setErrorCarga] = useState<"notfound" | "server" | null>(
+    null,
+  );
+  const [accion, setAccion] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -33,8 +48,12 @@ export default function VentaDetailPage({
         setServicios(s.results);
         setLoading(false);
       })
-      .catch(() => {
-        if (active) setLoading(false);
+      .catch((err) => {
+        if (!active) return;
+        setErrorCarga(
+          err instanceof ApiError && err.status === 404 ? "notfound" : "server",
+        );
+        setLoading(false);
       });
     return () => {
       active = false;
@@ -45,6 +64,33 @@ export default function VentaDetailPage({
     setVenta(await getVenta(id));
   }
 
+  async function handleAnular() {
+    if (!venta) return;
+    const motivo = prompt(
+      "Motivo de la anulación (opcional, p. ej. devolución):",
+      "",
+    );
+    if (motivo === null) return; // canceló el diálogo
+    setAccion(true);
+    try {
+      const v = await anularVenta(venta.id, motivo);
+      setVenta(v);
+    } finally {
+      setAccion(false);
+    }
+  }
+
+  async function handleDuplicar() {
+    if (!venta) return;
+    setAccion(true);
+    try {
+      const copia = await duplicarVenta(venta.id);
+      router.push(`/ventas/${copia.id}`);
+    } finally {
+      setAccion(false);
+    }
+  }
+
   const pacienteName = (pid: string) => {
     const p = pacientes.find((x) => x.id === pid);
     return p ? `${p.nombres} ${p.apellido_paterno} ${p.apellido_materno}` : pid;
@@ -52,32 +98,65 @@ export default function VentaDetailPage({
   const servicioName = (sid: string) =>
     servicios.find((x) => x.id === sid)?.nombre ?? sid;
 
-  if (loading) {
+  if (loading || errorCarga || !venta) {
     return (
-      <AppShell>
-        <p className="text-slate-500">Cargando…</p>
-      </AppShell>
-    );
-  }
-  if (!venta) {
-    return (
-      <AppShell>
-        <p className="text-slate-500">Venta no encontrada.</p>
-      </AppShell>
+      <CargaEstado
+        estado={
+          loading ? "cargando" : errorCarga === "server" ? "server" : "notfound"
+        }
+        entidad="Venta"
+        volverHref="/ventas"
+        volverLabel="Volver a ventas"
+      />
     );
   }
 
   const est = ESTADO_VENTA[venta.estado];
+  const anulada = venta.estado === "ANULADO";
+  const bloqueada = !venta.editable;
 
   return (
     <AppShell>
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <BackButton href="/ventas">Ventas</BackButton>
         <h1 className="text-xl font-semibold text-slate-800 md:text-2xl">
           {venta.numero || "Venta"}
         </h1>
         <Badge label={est.label} color={est.color} />
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            variant="secondary"
+            className="px-3 py-1.5 text-xs"
+            disabled={accion}
+            onClick={handleDuplicar}
+            title="Crear una copia editable para corregir esta venta"
+          >
+            <Copy className="h-3.5 w-3.5" /> Duplicar
+          </Button>
+          {!anulada && (
+            <Button
+              variant="danger"
+              className="px-3 py-1.5 text-xs"
+              disabled={accion}
+              onClick={handleAnular}
+              title="Anular la venta (devoluciones / errores)"
+            >
+              <Ban className="h-3.5 w-3.5" /> Anular
+            </Button>
+          )}
+        </div>
       </div>
+
+      {bloqueada && (
+        <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            {anulada
+              ? "Esta venta está anulada. Sus factores no se pueden modificar; queda solo como registro histórico."
+              : "Esta venta tiene pagos validados, por lo que sus servicios, adicionales y descuentos quedaron congelados. Para corregirla, usá “Duplicar” y luego anulá esta. Podés seguir cobrando las cuotas pendientes."}
+          </p>
+        </div>
+      )}
 
       <div className="mb-6 grid gap-2 rounded-2xl border border-slate-200/70 bg-white p-4 text-sm shadow-sm sm:grid-cols-4">
         <div>
@@ -104,68 +183,54 @@ export default function VentaDetailPage({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
-          <Card title="Servicios">
-            {venta.servicios.length === 0 ? (
-              <p className="text-sm text-slate-500">Sin servicios.</p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {venta.servicios.map((s) => (
-                  <li key={s.id} className="flex justify-between">
-                    <span>
-                      {servicioName(s.servicio)} ×{s.cantidad}
-                    </span>
-                    <span className="font-medium">S/ {s.subtotal}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+          {bloqueada ? (
+            <VentaFactoresReadOnly
+              venta={venta}
+              servicioName={servicioName}
+            />
+          ) : (
+            <>
+              <Card title="Servicios ofrecidos">
+                <ServiciosEditor
+                  venta={venta}
+                  servicios={servicios}
+                  servicioName={servicioName}
+                  onChanged={reload}
+                />
+              </Card>
 
-          {venta.adicionales.length > 0 && (
-            <Card title="Adicionales">
-              <ul className="space-y-1 text-sm">
-                {venta.adicionales.map((a) => (
-                  <li key={a.id} className="flex justify-between">
-                    <span>
-                      {a.nombre}{" "}
-                      <span className="text-slate-400">({a.tipo})</span> ×
-                      {a.cantidad}
-                    </span>
-                    <span className="font-medium">S/ {a.subtotal}</span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
+              <Card title="Adicionales / materiales">
+                <AdicionalesEditor venta={venta} onChanged={reload} />
+              </Card>
 
-          {venta.descuentos.length > 0 && (
-            <Card title="Descuentos">
-              <ul className="space-y-1 text-sm">
-                {venta.descuentos.map((d) => (
-                  <li key={d.id} className="flex justify-between">
-                    <span>{d.descripcion || "Descuento"}</span>
-                    <span className="font-medium text-rose-500">
-                      {d.tipo === "PORCENTAJE"
-                        ? `${d.valor}%`
-                        : `S/ ${d.valor}`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
+              <Card title="Descuentos / promociones">
+                <DescuentosEditor venta={venta} onChanged={reload} />
+              </Card>
+            </>
           )}
         </div>
 
         <Card title="Cronograma de cuotas">
-          <div className="space-y-3">
-            {venta.cuotas.length === 0 ? (
-              <p className="text-sm text-slate-500">Sin cuotas.</p>
+          {venta.cuotas.length === 0 ? (
+            anulada ? (
+              <p className="text-sm text-slate-400">
+                Venta anulada, sin cuotas.
+              </p>
             ) : (
-              venta.cuotas.map((c) => (
-                <CuotaRow key={c.id} cuota={c} onChanged={reload} />
-              ))
-            )}
-          </div>
+              <GenerarCuotas venta={venta} onChanged={reload} />
+            )
+          ) : (
+            <div className="space-y-3">
+              {venta.cuotas.map((c) => (
+                <CuotaRow
+                  key={c.id}
+                  cuota={c}
+                  onChanged={reload}
+                  readOnly={anulada}
+                />
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </AppShell>

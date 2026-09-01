@@ -29,6 +29,16 @@ export function createVenta(data: Partial<Venta>): Promise<Venta> {
   return api.post<Venta>("/ventas/", data);
 }
 
+/** Anula una venta (devoluciones / errores). Conserva el historial. */
+export function anularVenta(id: string, motivo?: string): Promise<Venta> {
+  return api.post<Venta>(`/ventas/${id}/anular/`, { motivo: motivo ?? "" });
+}
+
+/** Duplica una venta como copia editable (nueva venta sin pagos). */
+export function duplicarVenta(id: string): Promise<Venta> {
+  return api.post<Venta>(`/ventas/${id}/duplicar/`, {});
+}
+
 // --- Líneas de la venta ---
 export function addVentaServicio(
   data: Partial<VentaServicio>,
@@ -36,12 +46,31 @@ export function addVentaServicio(
   return api.post<VentaServicio>("/venta-servicios/", data);
 }
 
+export function updateVentaServicio(
+  id: string,
+  data: Partial<VentaServicio>,
+): Promise<VentaServicio> {
+  return api.patch<VentaServicio>(`/venta-servicios/${id}/`, data);
+}
+
+export function deleteVentaServicio(id: string): Promise<void> {
+  return api.delete<void>(`/venta-servicios/${id}/`);
+}
+
 export function addDescuento(data: Partial<Descuento>): Promise<Descuento> {
   return api.post<Descuento>("/descuentos/", data);
 }
 
+export function deleteDescuento(id: string): Promise<void> {
+  return api.delete<void>(`/descuentos/${id}/`);
+}
+
 export function addAdicional(data: Partial<Adicional>): Promise<Adicional> {
   return api.post<Adicional>("/adicionales/", data);
+}
+
+export function deleteAdicional(id: string): Promise<void> {
+  return api.delete<void>(`/adicionales/${id}/`);
 }
 
 // --- Cuotas ---

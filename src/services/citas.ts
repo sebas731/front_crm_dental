@@ -6,6 +6,7 @@ import type {
   HorarioAtencion,
   HorarioInput,
   Medico,
+  MedicoInput,
   Paginated,
   ServicioDental,
 } from "@/types";
@@ -14,12 +15,15 @@ import type {
 export function listCitas(params?: {
   search?: string;
   page?: number;
+  page_size?: number;
 }): Promise<Paginated<Cita>> {
   const qs = new URLSearchParams();
   if (params?.search) qs.set("search", params.search);
   if (params?.page) qs.set("page", String(params.page));
-  const suffix = qs.toString() ? `?${qs.toString()}` : "";
-  return api.get<Paginated<Cita>>(`/citas/${suffix}`);
+  // Trae hasta 500 (máximo del backend) para que agenda/dashboard no queden
+  // limitados a los primeros 20 registros.
+  qs.set("page_size", String(params?.page_size ?? 500));
+  return api.get<Paginated<Cita>>(`/citas/?${qs.toString()}`);
 }
 
 export function getCita(id: string): Promise<Cita> {
@@ -29,7 +33,9 @@ export function getCita(id: string): Promise<Cita> {
 export function listCitasByPaciente(
   pacienteId: string,
 ): Promise<Paginated<Cita>> {
-  return api.get<Paginated<Cita>>(`/citas/?paciente=${pacienteId}`);
+  return api.get<Paginated<Cita>>(
+    `/citas/?paciente=${pacienteId}&page_size=500`,
+  );
 }
 
 export function createCita(data: CitaInput): Promise<Cita> {
@@ -51,7 +57,22 @@ export function atenderCita(id: string, data: AtencionInput): Promise<Cita> {
 
 // --- Catálogos ---
 export function listMedicos(): Promise<Paginated<Medico>> {
-  return api.get<Paginated<Medico>>("/medicos/");
+  return api.get<Paginated<Medico>>("/medicos/?page_size=500");
+}
+
+export function createMedico(data: MedicoInput): Promise<Medico> {
+  return api.post<Medico>("/medicos/", data);
+}
+
+export function updateMedico(
+  id: string,
+  data: Partial<MedicoInput>,
+): Promise<Medico> {
+  return api.patch<Medico>(`/medicos/${id}/`, data);
+}
+
+export function deleteMedico(id: string): Promise<void> {
+  return api.delete<void>(`/medicos/${id}/`);
 }
 
 export function listServicios(): Promise<Paginated<ServicioDental>> {

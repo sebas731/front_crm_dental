@@ -5,8 +5,10 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
+import { useAuth } from "@/context/AuthContext";
+import { mensajeError } from "@/lib/apiError";
 import { PROCEDENCIA } from "@/lib/procedencia";
-import { ApiError } from "@/services/api";
+import { esAdministrativo, puedeRegistrarPacientes } from "@/lib/roles";
 import {
   createPaciente,
   deletePaciente,
@@ -27,6 +29,9 @@ const EMPTY: PacienteInput = {
 };
 
 export default function PacientesPage() {
+  const { user } = useAuth();
+  const puedeGestionar = puedeRegistrarPacientes(user);
+  const puedeEliminar = esAdministrativo(user); // borrar: solo administrativos
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [count, setCount] = useState(0);
   const [search, setSearch] = useState("");
@@ -92,15 +97,7 @@ export default function PacientesPage() {
       setShowForm(false);
       await reload(search);
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(
-          typeof err.data === "object"
-            ? JSON.stringify(err.data)
-            : "No se pudo crear el paciente.",
-        );
-      } else {
-        setError("Error de red.");
-      }
+      setError(mensajeError(err, "No se pudo crear el paciente."));
     } finally {
       setSaving(false);
     }
@@ -108,17 +105,24 @@ export default function PacientesPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("¿Eliminar este paciente?")) return;
-    await deletePaciente(id);
-    await reload(search);
+    try {
+      await deletePaciente(id);
+      await reload(search);
+    } catch (err) {
+      // El backend protege pacientes con citas/ventas/historia (400).
+      alert(mensajeError(err, "No se pudo eliminar el paciente."));
+    }
   }
 
   return (
     <AppShell>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Pacientes ({count})</h1>
-        <Button onClick={() => setShowForm((v) => !v)}>
-          {showForm ? "Cancelar" : "Nuevo paciente"}
-        </Button>
+        {puedeGestionar && (
+          <Button onClick={() => setShowForm((v) => !v)}>
+            {showForm ? "Cancelar" : "Nuevo paciente"}
+          </Button>
+        )}
       </div>
 
       {showForm && (
@@ -216,7 +220,8 @@ export default function PacientesPage() {
 
       <div className="mb-3">
         <Input
-          placeholder="Buscar por nombre o documento…"
+          label="Buscar paciente (nombre o DNI)"
+          placeholder="Escribí un nombre o número de DNI y Enter…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => {
@@ -271,13 +276,15 @@ export default function PacientesPage() {
                       >
                         Ver ficha
                       </Link>
-                      <Button
-                        variant="danger"
-                        className="px-3 py-1.5 text-xs"
-                        onClick={() => handleDelete(p.id)}
-                      >
-                        Eliminar
-                      </Button>
+                      {puedeEliminar && (
+                        <Button
+                          variant="danger"
+                          className="px-3 py-1.5 text-xs"
+                          onClick={() => handleDelete(p.id)}
+                        >
+                          Eliminar
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>

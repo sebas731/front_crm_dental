@@ -2,16 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarCheck, ShieldCheck, Stethoscope, Users } from "lucide-react";
+import { CalendarCheck, ShieldCheck, Users } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
+import { Logo, LogoMark } from "@/components/ui/Logo";
 import { ApiError } from "@/services/api";
 
 const BULLETS = [
   { icon: Users, text: "Pacientes e historias clínicas centralizadas" },
   { icon: CalendarCheck, text: "Agenda y control de citas en tiempo real" },
-  { icon: ShieldCheck, text: "Pagos validados y trazables" },
+  { icon: ShieldCheck, text: "Ventas, cuotas y pagos validados" },
 ];
 
 export default function LoginPage() {
@@ -48,53 +49,62 @@ export default function LoginPage() {
     <div className="flex min-h-screen bg-slate-100">
       {/* Panel de marca (desktop) */}
       <div
-        className="relative hidden w-2/5 flex-col justify-between bg-teal-700 p-10 text-white md:flex"
+        className="relative hidden w-2/5 flex-col justify-between overflow-hidden p-10 text-white md:flex"
         style={{
+          backgroundColor: "#0d9488",
           backgroundImage:
-            "radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px)",
-          backgroundSize: "18px 18px",
+            "radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1px), linear-gradient(135deg, #0d9488 0%, #0e7490 55%, #155e75 100%)",
+          backgroundSize: "18px 18px, auto",
         }}
       >
-        <div className="flex items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
-            <Stethoscope className="h-6 w-6" />
-          </span>
-          <span className="text-xl font-semibold">DENTAL SAC</span>
+        {/* Marca de agua del logo */}
+        <div className="pointer-events-none absolute -right-16 -bottom-16 opacity-10">
+          <LogoMark size={280} tone="white" />
         </div>
-        <div>
-          <h2 className="text-2xl leading-snug font-semibold">
+
+        <div className="relative">
+          <Logo tone="white" size={46} />
+        </div>
+
+        <div className="relative">
+          <h2 className="max-w-sm text-3xl leading-snug font-semibold">
             Gestión clínica dental, simple y ordenada.
           </h2>
-          <ul className="mt-6 space-y-3">
+          <ul className="mt-8 space-y-4">
             {BULLETS.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 text-teal-50">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15">
+              <li key={text} className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20 ring-1 ring-white/25">
                   <Icon className="h-4 w-4" />
                 </span>
-                <span className="text-sm">{text}</span>
+                <span className="text-sm text-teal-50">{text}</span>
               </li>
             ))}
           </ul>
         </div>
-        <p className="text-xs text-teal-200/80">© DENTAL SAC · v1.0</p>
+
+        <p className="relative text-xs text-teal-100/80">
+          © DENTAL STUDIO · v1.0
+        </p>
       </div>
 
       {/* Formulario */}
       <div className="flex flex-1 items-center justify-center p-6">
         <form
           onSubmit={handleSubmit}
-          className="w-full max-w-sm space-y-5 rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm"
+          className="w-full max-w-sm space-y-5 rounded-2xl border border-slate-200/70 bg-white p-7 shadow-sm"
         >
-          <div className="space-y-1 text-center">
-            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-600 text-white md:hidden">
-              <Stethoscope className="h-6 w-6" />
-            </span>
-            <h1 className="text-xl font-semibold text-slate-800">
-              Iniciar sesión
-            </h1>
-            <p className="text-sm text-slate-500">
-              Ingresá tus credenciales para continuar
-            </p>
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-50">
+              <LogoMark size={40} />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-slate-800">
+                Bienvenido
+              </h1>
+              <p className="text-sm text-slate-500">
+                Ingresá a tu cuenta de DENTAL STUDIO
+              </p>
+            </div>
           </div>
 
           <Input
@@ -113,7 +123,11 @@ export default function LoginPage() {
             required
           />
 
-          {error && <p className="text-sm text-rose-500">{error}</p>}
+          {error && (
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-600">
+              {error}
+            </p>
+          )}
 
           <Button type="submit" className="w-full" disabled={submitting}>
             {submitting ? "Ingresando…" : "Ingresar"}

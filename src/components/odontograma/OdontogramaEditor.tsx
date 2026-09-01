@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Field";
+import { mensajeError } from "@/lib/apiError";
 import { actualizarOdontograma, crearOdontograma } from "@/services/historia";
 import type { DienteEstado, Odontograma } from "@/types";
 import { ESTADOS_DIENTE, FILAS_DIENTES } from "./dientes";
@@ -34,10 +35,12 @@ export function OdontogramaEditor({
   historiaId,
   odontograma,
   onSaved,
+  readOnly = false,
 }: {
   historiaId: string;
   odontograma: Odontograma | null;
   onSaved: (o: Odontograma) => void;
+  readOnly?: boolean;
 }) {
   const [dientes, setDientes] = useState<Record<string, DienteEstado>>(
     odontograma?.dientes ?? {},
@@ -48,6 +51,7 @@ export function OdontogramaEditor({
   });
   const [selected, setSelected] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function setEstado(estado: string) {
     if (!selected) return;
@@ -65,19 +69,22 @@ export function OdontogramaEditor({
 
   async function handleSave() {
     setSaving(true);
+    setError(null);
     try {
       const payload = { historia_clinica: historiaId, dientes, ...footer };
       const saved = odontograma
         ? await actualizarOdontograma(odontograma.id, payload)
         : await crearOdontograma(payload);
       onSaved(saved);
+    } catch (err) {
+      setError(mensajeError(err, "No se pudo guardar el odontograma."));
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="space-y-4">
+    <fieldset disabled={readOnly} className="m-0 space-y-4 border-0 p-0">
       {/* Dientes */}
       <div className="overflow-x-auto">
         <div className="inline-block space-y-1">
@@ -182,13 +189,17 @@ export function OdontogramaEditor({
         />
       </div>
 
-      <Button onClick={handleSave} disabled={saving}>
-        {saving
-          ? "Guardando…"
-          : odontograma
-            ? "Actualizar odontograma"
-            : "Guardar odontograma"}
-      </Button>
-    </div>
+      {error && <p className="text-sm text-rose-500">{error}</p>}
+
+      {!readOnly && (
+        <Button onClick={handleSave} disabled={saving}>
+          {saving
+            ? "Guardando…"
+            : odontograma
+              ? "Actualizar odontograma"
+              : "Guardar odontograma"}
+        </Button>
+      )}
+    </fieldset>
   );
 }
