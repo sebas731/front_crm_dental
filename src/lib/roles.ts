@@ -33,3 +33,13 @@ export const ROL_LABEL: Record<UserRol, string> = {
   ASSISTANT: "Asistente",
   MEDICO: "Médico",
 };
+
+/** Qué habilita cada rol (los "permisos" del sistema se otorgan por rol). */
+export const ROL_DESCRIPCION: Record<UserRol, string> = {
+  ADMIN: "Acceso total, incluida la gestión de usuarios y la configuración.",
+  MANAGER: "Acceso total al negocio: pacientes, citas, ventas, pagos y reportes.",
+  ASSISTANT:
+    "Pacientes, citas, historias y agenda. No registra ni valida pagos, ni gestiona usuarios.",
+  MEDICO:
+    "Solo consulta: sus citas, atender, ver horario e historias. Sin acceso administrativo ni a pagos.",
+};

@@ -40,6 +40,16 @@ export interface User {
   is_staff: boolean;
 }
 
+export interface UserInput {
+  username: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  rol: UserRol;
+  is_active?: boolean;
+  password?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Pacientes
 // ---------------------------------------------------------------------------

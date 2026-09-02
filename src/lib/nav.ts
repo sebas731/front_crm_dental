@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   ReceiptText,
   Stethoscope,
+  UserCog,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -40,6 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Stethoscope,
     soloAdmin: true,
   },
+  { href: "/usuarios", label: "Usuarios", icon: UserCog, soloAdmin: true },
 ];
 
 /** Ítems de navegación visibles para el usuario según su rol. */
