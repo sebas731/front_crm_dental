@@ -3,6 +3,8 @@
 import { MessageCircle, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/context/AuthContext";
+import { puedeCrearCitas } from "@/lib/roles";
 import type { Cita, Paciente } from "@/types";
 
 /** Normaliza el teléfono a dígitos (asume Perú si no tiene código país). */
@@ -58,8 +60,12 @@ export function WhatsAppButton({
   cita: Cita;
   paciente?: Paciente;
 }) {
+  const { user } = useAuth();
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState("");
+
+  // Solo administrativos y asistentes envían WhatsApp; el médico no.
+  if (!puedeCrearCitas(user)) return null;
 
   const wa = paciente ? toWa(paciente.telefono || paciente.numero) : "";
   const nombre = paciente
