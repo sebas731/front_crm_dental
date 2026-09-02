@@ -19,7 +19,9 @@ import {
   addVentaServicio,
   createCuota,
   createVenta,
+  deleteVenta,
 } from "@/services/ventas";
+import { mensajeError } from "@/lib/apiError";
 import type { Paciente, ServicioDental, TipoPago } from "@/types";
 
 interface ServRow {
@@ -109,13 +111,16 @@ export default function NuevaVentaPage() {
     if (servRows.length === 0 && adicRows.length === 0)
       return setError("Agregá al menos un servicio o adicional.");
     setSaving(true);
+    // Si algo falla después de crear la venta, la borramos (rollback) para no
+    // dejar una venta parcial/huérfana. El número lo genera el backend.
+    let ventaId: string | null = null;
     try {
       const venta = await createVenta({
         paciente,
         tipo_pago: tipoPago,
         total: total.toFixed(2),
-        numero: `V-${Date.now().toString(36).toUpperCase()}`,
       });
+      ventaId = venta.id;
       for (const r of servRows.filter((x) => x.servicio)) {
         await addVentaServicio({
           venta: venta.id,
@@ -150,8 +155,9 @@ export default function NuevaVentaPage() {
         });
       }
       router.push(`/ventas/${venta.id}`);
-    } catch {
-      setError("No se pudo registrar la venta.");
+    } catch (err) {
+      if (ventaId) await deleteVenta(ventaId).catch(() => {});
+      setError(mensajeError(err, "No se pudo registrar la venta."));
       setSaving(false);
     }
   }

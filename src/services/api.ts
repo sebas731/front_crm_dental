@@ -84,8 +84,12 @@ async function doRefresh(): Promise<string | null> {
     return null;
   }
 
-  const data = (await res.json()) as { access: string };
+  const data = (await res.json()) as { access: string; refresh?: string };
   setToken(data.access);
+  // Con rotación (ROTATE_REFRESH_TOKENS) el backend emite un refresh nuevo y
+  // blacklistea el anterior; hay que persistir el nuevo o el próximo refresh
+  // fallaría.
+  if (data.refresh) setRefreshToken(data.refresh);
   return data.access;
 }
 

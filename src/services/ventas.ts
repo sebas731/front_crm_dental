@@ -29,6 +29,10 @@ export function createVenta(data: Partial<Venta>): Promise<Venta> {
   return api.post<Venta>("/ventas/", data);
 }
 
+export function deleteVenta(id: string): Promise<void> {
+  return api.delete<void>(`/ventas/${id}/`);
+}
+
 /** Anula una venta (devoluciones / errores). Conserva el historial. */
 export function anularVenta(id: string, motivo?: string): Promise<Venta> {
   return api.post<Venta>(`/ventas/${id}/anular/`, { motivo: motivo ?? "" });
