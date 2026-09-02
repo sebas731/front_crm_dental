@@ -136,6 +136,13 @@ export async function apiFetch<T = unknown>(
     if (newToken) {
       return apiFetch<T>(path, { ...options, _retry: true });
     }
+    // El refresh falló (sesión vencida/invalidada): mandar al login en vez
+    // de dejar que la operación muestre un error genérico. Navegación dura a
+    // propósito para descartar todo el estado en memoria de la sesión muerta.
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.href = "/login";
+    }
   }
 
   const text = await response.text();
