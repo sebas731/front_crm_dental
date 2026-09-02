@@ -15,8 +15,9 @@ import { listPacientes } from "@/services/pacientes";
 import type { Cita, Medico, NotaAgenda, Paciente } from "@/types";
 
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const HORA_INICIO = 8;
-const HORA_FIN = 20;
+// Rango horario visible de la agenda (07:00 a 21:00).
+const HORA_INICIO = 7;
+const HORA_FIN = 22;
 
 /** Lunes de la semana que contiene `d`. */
 function mondayOf(d: Date): Date {

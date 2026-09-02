@@ -182,9 +182,13 @@ export interface Cita extends BaseModel {
   motivo: string;
   observaciones: string;
   atencion: AtencionCita | null;
+  /** Id de la orden de venta autogenerada (solo lectura). */
+  venta: string | null;
 }
 
-export type CitaInput = Partial<Omit<Cita, keyof BaseModel | "atencion">>;
+export type CitaInput = Partial<
+  Omit<Cita, keyof BaseModel | "atencion" | "venta">
+>;
 
 export interface NotaAgenda extends BaseModel {
   fecha: string;

@@ -228,6 +228,38 @@ export default function CitaDetailPage({
         </div>
       </div>
 
+      {cita.venta && esAdministrativo(user) && (
+        <Card title="Orden de venta" className="mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm text-slate-600">
+              <p>
+                Se generó automáticamente una orden de venta para esta cita.
+              </p>
+              <p className="mt-1 text-slate-500">
+                Servicio:{" "}
+                <span className="font-medium text-slate-700">
+                  {servicios.find((s) => s.id === cita.servicio)?.nombre ??
+                    "—"}
+                </span>{" "}
+                · Paciente:{" "}
+                <span className="font-medium text-slate-700">
+                  {paciente
+                    ? `${paciente.nombres} ${paciente.apellido_paterno}`
+                    : "—"}
+                </span>
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              className="px-3 py-1.5 text-xs"
+              onClick={() => router.push(`/ventas/${cita.venta}`)}
+            >
+              Editar orden de venta
+            </Button>
+          </div>
+        </Card>
+      )}
+
       <Card title={`Atención ${cita.atencion ? "✓" : ""}`}>
         <AtencionForm
           cita={cita}
