@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AlertCircle, CalendarPlus, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { NotasPanel } from "@/components/agenda/NotasPanel";
 import { CitaForm } from "@/components/citas/CitaForm";
-import { PacienteForm } from "@/components/pacientes/PacienteForm";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useAuth } from "@/context/AuthContext";
@@ -14,7 +14,7 @@ import { ESTADO_CITA } from "@/lib/estados";
 import { esMedico, puedeCrearCitas, puedeRegistrarPacientes } from "@/lib/roles";
 import { listCitas, listMedicos, listServicios } from "@/services/citas";
 import { createNota, deleteNota, listNotas } from "@/services/notas";
-import { createPaciente, listPacientes } from "@/services/pacientes";
+import { listPacientes } from "@/services/pacientes";
 import type {
   Cita,
   Medico,
@@ -47,6 +47,7 @@ function ymd(d: Date): string {
 
 export default function AgendaPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const puedeNotas = !esMedico(user); // el médico no ve/gestiona anotaciones
   const puedeCita = puedeCrearCitas(user);
   const puedePaciente = puedeRegistrarPacientes(user);
@@ -55,7 +56,6 @@ export default function AgendaPage() {
   const [medicos, setMedicos] = useState<Medico[]>([]);
   const [servicios, setServicios] = useState<ServicioDental[]>([]);
   const [modalCita, setModalCita] = useState(false);
-  const [modalPaciente, setModalPaciente] = useState(false);
   const [weekStart, setWeekStart] = useState<Date>(() => mondayOf(new Date()));
   const [notas, setNotas] = useState<NotaAgenda[]>([]);
   const [notaSlot, setNotaSlot] = useState<{
@@ -203,7 +203,7 @@ export default function AgendaPage() {
             {puedePaciente && (
               <Button
                 variant="secondary"
-                onClick={() => setModalPaciente(true)}
+                onClick={() => router.push("/pacientes?nuevo=1")}
               >
                 <UserPlus className="h-4 w-4" /> Nuevo paciente
               </Button>
@@ -241,10 +241,10 @@ export default function AgendaPage() {
         <p className="text-slate-500">Cargando…</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-slate-200/70 bg-white shadow-sm">
-          <table className="w-full min-w-[860px] border-collapse text-sm">
+          <table className="w-full min-w-[860px] table-fixed border-collapse text-sm">
             <thead className="sticky top-0 z-10">
               <tr>
-                <th className="w-20 border-b border-slate-200/70 bg-slate-50 px-2 py-3 text-xs font-medium text-slate-400">
+                <th className="w-16 border-b border-slate-200/70 bg-slate-50 px-2 py-3 text-xs font-medium text-slate-400">
                   Hora
                 </th>
                 {dias.map((d, i) => {
@@ -325,12 +325,12 @@ export default function AgendaPage() {
                               >
                                 <div className="flex items-baseline gap-1.5">
                                   <span
-                                    className="font-semibold"
+                                    className="shrink-0 font-semibold"
                                     style={{ color: est.color }}
                                   >
                                     {c.hora_inicio.slice(0, 5)}
                                   </span>
-                                  <span className="truncate font-medium text-slate-700">
+                                  <span className="min-w-0 flex-1 truncate font-medium text-slate-700">
                                     {pacienteName(c.paciente)}
                                   </span>
                                 </div>
@@ -383,21 +383,6 @@ export default function AgendaPage() {
           servicios={servicios}
           onCreated={async () => {
             setModalCita(false);
-            await reloadDatos();
-          }}
-        />
-      </Modal>
-
-      <Modal
-        open={modalPaciente}
-        title="Nuevo paciente"
-        onClose={() => setModalPaciente(false)}
-      >
-        <PacienteForm
-          submitLabel="Guardar paciente"
-          onSubmit={async (data) => {
-            await createPaciente(data);
-            setModalPaciente(false);
             await reloadDatos();
           }}
         />

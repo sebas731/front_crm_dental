@@ -58,6 +58,15 @@ export default function PacientesPage() {
     [load],
   );
 
+  // Abre el formulario directo si se llega con ?nuevo=1 (p. ej. desde la agenda).
+  // Lectura única del query al montar (client-only, no rompe el prerender).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("nuevo") === "1") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowForm(true);
+    }
+  }, []);
+
   useEffect(() => {
     let active = true;
     listPacientes()

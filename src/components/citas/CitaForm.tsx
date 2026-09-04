@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
 import { HoraAmPm } from "@/components/ui/HoraAmPm";
+import { PacientePicker } from "@/components/ui/PacientePicker";
 import { ServicioSelect } from "@/components/servicios/ServicioSelect";
 import { mensajeError } from "@/lib/apiError";
 import { createCita } from "@/services/citas";
@@ -56,6 +57,10 @@ export function CitaForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.paciente) {
+      setError("Elegí un paciente (buscá por nombre o DNI).");
+      return;
+    }
     setError(null);
     setSaving(true);
     try {
@@ -71,19 +76,13 @@ export function CitaForm({
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2">
-      <Select
-        label="Paciente"
+      <PacientePicker
+        label="Paciente (buscar por nombre o DNI)"
+        pacientes={pacientes}
         value={form.paciente ?? ""}
-        onChange={(e) => update("paciente", e.target.value)}
-        required
-      >
-        <option value="">Seleccionar…</option>
-        {pacientes.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.nombres} {p.apellido_paterno}
-          </option>
-        ))}
-      </Select>
+        onChange={(id) => update("paciente", id)}
+        allowTodos={false}
+      />
       <Select
         label="Médico"
         value={form.medico ?? ""}

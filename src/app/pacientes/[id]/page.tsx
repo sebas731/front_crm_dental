@@ -295,7 +295,11 @@ export default function PacienteDetailPage({
 
           {tab === "pagos" && puedeVerPagos && (
             <Card title="Historial de pagos">
-              <HistorialPagos ventas={ventas} servicios={servicios} />
+              <HistorialPagos
+                ventas={ventas}
+                servicios={servicios}
+                pacienteNombre={`${paciente.nombres} ${paciente.apellido_paterno} ${paciente.apellido_materno}`.trim()}
+              />
             </Card>
           )}
         </div>

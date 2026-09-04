@@ -235,6 +235,8 @@ export interface Pago extends BaseModel {
   fecha_pago: string | null;
   referencia: string;
   comprobante: string | null;
+  registrado_por: number | null;
+  registrado_por_nombre: string;
   validado: boolean;
   validado_por: number | null;
   fecha_validacion: string | null;
