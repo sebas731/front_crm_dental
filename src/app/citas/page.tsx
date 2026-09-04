@@ -10,6 +10,7 @@ import { Input, Select } from "@/components/ui/Field";
 import { CitaCardList } from "@/components/citas/CitaCardList";
 import { CitasFilterBar } from "@/components/citas/CitasFilterBar";
 import { PeriodoTabs } from "@/components/citas/PeriodoTabs";
+import { HoraAmPm } from "@/components/ui/HoraAmPm";
 import { WhatsAppButton } from "@/components/citas/WhatsAppButton";
 import { ServicioSelect } from "@/components/servicios/ServicioSelect";
 import { useAuth } from "@/context/AuthContext";
@@ -251,11 +252,10 @@ export default function CitasPage() {
             onChange={(e) => update("fecha", e.target.value)}
             required
           />
-          <Input
+          <HoraAmPm
             label="Hora"
-            type="time"
             value={form.hora_inicio ?? ""}
-            onChange={(e) => update("hora_inicio", e.target.value)}
+            onChange={(v) => update("hora_inicio", v)}
             required
           />
           <Input

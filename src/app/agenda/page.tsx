@@ -78,21 +78,11 @@ export default function AgendaPage() {
     [weekStart],
   );
 
-  // Rango horario: por defecto 07–21, pero se amplía si hay citas de la
-  // semana visible fuera de ese horario (p. ej. una cita de madrugada).
-  const horas = useMemo(() => {
-    const fechasSemana = new Set(dias.map(ymd));
-    let min = HORA_INICIO;
-    let max = HORA_FIN;
-    for (const c of citas) {
-      if (!fechasSemana.has(c.fecha)) continue;
-      const h = parseInt(c.hora_inicio.slice(0, 2), 10);
-      if (Number.isNaN(h)) continue;
-      if (h < min) min = h;
-      if (h + 1 > max) max = h + 1;
-    }
-    return Array.from({ length: max - min }, (_, i) => min + i);
-  }, [citas, dias]);
+  const horas = useMemo(
+    () =>
+      Array.from({ length: HORA_FIN - HORA_INICIO }, (_, i) => HORA_INICIO + i),
+    [],
+  );
 
   // Mes(es) que abarca la semana visible (para señalar el mes en el calendario).
   const mesLabel = useMemo(() => {

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { CargaEstado } from "@/components/ui/CargaEstado";
 import { Card } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Field";
+import { HoraAmPm } from "@/components/ui/HoraAmPm";
 import { useAuth } from "@/context/AuthContext";
 import { ESTADO_CITA } from "@/lib/estados";
 import { esAdministrativo, puedeCrearCitas } from "@/lib/roles";
@@ -176,13 +177,10 @@ export default function CitaDetailPage({
               onChange={(e) => setEdit((f) => ({ ...f, fecha: e.target.value }))}
               required
             />
-            <Input
+            <HoraAmPm
               label="Hora"
-              type="time"
               value={edit.hora_inicio}
-              onChange={(e) =>
-                setEdit((f) => ({ ...f, hora_inicio: e.target.value }))
-              }
+              onChange={(v) => setEdit((f) => ({ ...f, hora_inicio: v }))}
               required
             />
             <Select
