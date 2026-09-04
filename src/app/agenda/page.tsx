@@ -1,18 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CalendarPlus, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { NotasPanel } from "@/components/agenda/NotasPanel";
+import { CitaForm } from "@/components/citas/CitaForm";
+import { PacienteForm } from "@/components/pacientes/PacienteForm";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { ESTADO_CITA } from "@/lib/estados";
-import { esMedico } from "@/lib/roles";
-import { listCitas, listMedicos } from "@/services/citas";
+import { esMedico, puedeCrearCitas, puedeRegistrarPacientes } from "@/lib/roles";
+import { listCitas, listMedicos, listServicios } from "@/services/citas";
 import { createNota, deleteNota, listNotas } from "@/services/notas";
-import { listPacientes } from "@/services/pacientes";
-import type { Cita, Medico, NotaAgenda, Paciente } from "@/types";
+import { createPaciente, listPacientes } from "@/services/pacientes";
+import type {
+  Cita,
+  Medico,
+  NotaAgenda,
+  Paciente,
+  ServicioDental,
+} from "@/types";
 
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 // Rango horario visible de la agenda (07:00 a 21:00).
@@ -39,9 +48,14 @@ function ymd(d: Date): string {
 export default function AgendaPage() {
   const { user } = useAuth();
   const puedeNotas = !esMedico(user); // el médico no ve/gestiona anotaciones
+  const puedeCita = puedeCrearCitas(user);
+  const puedePaciente = puedeRegistrarPacientes(user);
   const [citas, setCitas] = useState<Cita[]>([]);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [medicos, setMedicos] = useState<Medico[]>([]);
+  const [servicios, setServicios] = useState<ServicioDental[]>([]);
+  const [modalCita, setModalCita] = useState(false);
+  const [modalPaciente, setModalPaciente] = useState(false);
   const [weekStart, setWeekStart] = useState<Date>(() => mondayOf(new Date()));
   const [notas, setNotas] = useState<NotaAgenda[]>([]);
   const [notaSlot, setNotaSlot] = useState<{
@@ -52,12 +66,13 @@ export default function AgendaPage() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([listCitas(), listPacientes(), listMedicos()])
-      .then(([c, p, m]) => {
+    Promise.all([listCitas(), listPacientes(), listMedicos(), listServicios()])
+      .then(([c, p, m, s]) => {
         if (!active) return;
         setCitas(c.results);
         setPacientes(p.results);
         setMedicos(m.results);
+        setServicios(s.results);
         setLoading(false);
       })
       .catch(() => {
@@ -66,6 +81,12 @@ export default function AgendaPage() {
     return () => {
       active = false;
     };
+  }, []);
+
+  const reloadDatos = useCallback(async () => {
+    const [c, p] = await Promise.all([listCitas(), listPacientes()]);
+    setCitas(c.results);
+    setPacientes(p.results);
   }, []);
 
   const dias = useMemo(
@@ -177,6 +198,26 @@ export default function AgendaPage() {
             {mesLabel}
           </h1>
         </div>
+        {(puedeCita || puedePaciente) && (
+          <div className="flex items-center gap-2">
+            {puedePaciente && (
+              <Button
+                variant="secondary"
+                onClick={() => setModalPaciente(true)}
+              >
+                <UserPlus className="h-4 w-4" /> Nuevo paciente
+              </Button>
+            )}
+            {puedeCita && (
+              <Button onClick={() => setModalCita(true)}>
+                <CalendarPlus className="h-4 w-4" /> Nueva cita
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={() => shiftWeek(-1)}>
             ←
@@ -268,24 +309,32 @@ export default function AgendaPage() {
                             <AlertCircle className="h-3.5 w-3.5" />
                           </button>
                         )}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1">
                           {items.map((c) => {
                             const est = ESTADO_CITA[c.estado];
                             return (
                               <Link
                                 key={c.id}
                                 href={`/citas/${c.id}`}
-                                className="block rounded-lg px-2 py-1.5 text-xs text-white shadow-sm transition-transform hover:scale-[1.02]"
-                                style={{ backgroundColor: est.color }}
+                                className="block rounded-md border-l-4 bg-white px-2 py-1 text-xs shadow-sm transition-colors hover:bg-slate-50"
+                                style={{
+                                  borderLeftColor: est.color,
+                                  backgroundColor: `${est.color}14`,
+                                }}
                                 title={`${est.label} · ${medicoName(c.medico)}`}
                               >
-                                <div className="font-semibold">
-                                  {c.hora_inicio.slice(0, 5)}
+                                <div className="flex items-baseline gap-1.5">
+                                  <span
+                                    className="font-semibold"
+                                    style={{ color: est.color }}
+                                  >
+                                    {c.hora_inicio.slice(0, 5)}
+                                  </span>
+                                  <span className="truncate font-medium text-slate-700">
+                                    {pacienteName(c.paciente)}
+                                  </span>
                                 </div>
-                                <div className="truncate">
-                                  {pacienteName(c.paciente)}
-                                </div>
-                                <div className="truncate text-[10px] opacity-90">
+                                <div className="truncate text-[10px] text-slate-500">
                                   {medicoName(c.medico)}
                                 </div>
                               </Link>
@@ -322,6 +371,37 @@ export default function AgendaPage() {
           }}
         />
       )}
+
+      <Modal
+        open={modalCita}
+        title="Nueva cita"
+        onClose={() => setModalCita(false)}
+      >
+        <CitaForm
+          pacientes={pacientes}
+          medicos={medicos}
+          servicios={servicios}
+          onCreated={async () => {
+            setModalCita(false);
+            await reloadDatos();
+          }}
+        />
+      </Modal>
+
+      <Modal
+        open={modalPaciente}
+        title="Nuevo paciente"
+        onClose={() => setModalPaciente(false)}
+      >
+        <PacienteForm
+          submitLabel="Guardar paciente"
+          onSubmit={async (data) => {
+            await createPaciente(data);
+            setModalPaciente(false);
+            await reloadDatos();
+          }}
+        />
+      </Modal>
     </AppShell>
   );
 }
