@@ -1,21 +1,21 @@
 import { CreditCard, ReceiptText } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
-import { ESTADO_CUOTA, ESTADO_VENTA, TIPO_PAGO } from "@/lib/estados";
+import { ESTADO_VENTA, TIPO_PAGO } from "@/lib/estados";
 import type { Venta } from "@/types";
 
 function CuotaCard({ cuota }: { cuota: Venta["cuotas"][number] }) {
-  const est = ESTADO_CUOTA[cuota.estado];
+  const pagada = cuota.estado === "PAGADO";
   return (
     <div className="rounded-xl border border-slate-200/70 bg-white p-3 text-sm">
       <div className="flex items-center justify-between">
         <span className="font-medium text-slate-700">
           Cuota {cuota.numero} · S/ {cuota.monto}
         </span>
-        <Badge label={est.label} color={est.color} />
+        {pagada && <Badge label="Pagado" color="#10b981" />}
       </div>
-      <p className="text-xs text-slate-400">
-        Vence: {cuota.fecha_limite ?? "—"} · Pagado: S/ {cuota.total_pagado}
-      </p>
+      {cuota.fecha_limite && (
+        <p className="text-xs text-slate-400">Vence: {cuota.fecha_limite}</p>
+      )}
       {cuota.pagos.map((p) => (
         <p
           key={p.id}
@@ -23,11 +23,7 @@ function CuotaCard({ cuota }: { cuota: Venta["cuotas"][number] }) {
         >
           <CreditCard className="h-3.5 w-3.5 text-teal-600" />
           S/ {p.monto} · {p.metodo}
-          {p.validado ? (
-            <span className="text-emerald-600">· validado ✓</span>
-          ) : (
-            <span className="text-amber-600">· sin validar</span>
-          )}
+          <span className="text-emerald-600">· pagado ✓</span>
         </p>
       ))}
     </div>
@@ -72,14 +68,15 @@ export function PipelineTimeline({
                     <ReceiptText className="h-4 w-4 text-teal-600" />
                     {venta.numero || "Venta"}
                   </span>
-                  <Badge label={est.label} color={est.color} />
+                  {venta.estado !== "PENDIENTE" && (
+                    <Badge label={est.label} color={est.color} />
+                  )}
                 </div>
                 <p className="text-sm font-medium text-slate-700">
                   {pacienteName(venta.paciente)}
                 </p>
                 <p className="text-xs text-slate-400">
-                  {TIPO_PAGO[venta.tipo_pago]} · Total S/ {venta.total} · Saldo
-                  S/ {venta.saldo}
+                  {TIPO_PAGO[venta.tipo_pago]} · Total S/ {venta.total}
                 </p>
               </div>
 

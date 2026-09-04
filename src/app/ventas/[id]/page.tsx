@@ -122,7 +122,9 @@ export default function VentaDetailPage({
         <h1 className="text-xl font-semibold text-slate-800 md:text-2xl">
           {venta.numero || "Venta"}
         </h1>
-        <Badge label={est.label} color={est.color} />
+        {venta.estado !== "PENDIENTE" && (
+          <Badge label={est.label} color={est.color} />
+        )}
         <div className="ml-auto flex items-center gap-2">
           <Button
             variant="secondary"
@@ -153,12 +155,12 @@ export default function VentaDetailPage({
           <p>
             {anulada
               ? "Esta venta está anulada. Sus factores no se pueden modificar; queda solo como registro histórico."
-              : "Esta venta tiene pagos validados, por lo que sus servicios, adicionales y descuentos quedaron congelados. Para corregirla, usá “Duplicar” y luego anulá esta. Podés seguir cobrando las cuotas pendientes."}
+              : "Esta venta ya tiene pagos registrados, por lo que sus servicios, adicionales y descuentos quedaron congelados. Para corregirla, usá “Duplicar” y luego anulá esta. Podés seguir cobrando las cuotas restantes."}
           </p>
         </div>
       )}
 
-      <div className="mb-6 grid gap-2 rounded-2xl border border-slate-200/70 bg-white p-4 text-sm shadow-sm sm:grid-cols-4">
+      <div className="mb-6 grid gap-2 rounded-2xl border border-slate-200/70 bg-white p-4 text-sm shadow-sm sm:grid-cols-3">
         <div>
           <span className="text-slate-400">Paciente</span>
           <p className="font-medium text-slate-700">
@@ -174,10 +176,6 @@ export default function VentaDetailPage({
         <div>
           <span className="text-slate-400">Total</span>
           <p className="font-medium text-slate-700">S/ {venta.total}</p>
-        </div>
-        <div>
-          <span className="text-slate-400">Saldo</span>
-          <p className="font-medium text-amber-600">S/ {venta.saldo}</p>
         </div>
       </div>
 

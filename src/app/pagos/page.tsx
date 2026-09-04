@@ -47,13 +47,6 @@ export default function PagosPipelinePage() {
     () => filtradas.reduce((acc, v) => acc + Number(v.total_pagado), 0),
     [filtradas],
   );
-  const totalPorCobrar = useMemo(
-    () =>
-      filtradas
-        .filter((v) => v.estado !== "ANULADO")
-        .reduce((acc, v) => acc + Number(v.saldo), 0),
-    [filtradas],
-  );
 
   return (
     <AppShell>
@@ -66,7 +59,7 @@ export default function PagosPipelinePage() {
         </p>
       </div>
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-1">
           <PacientePicker
             pacientes={pacientes}
@@ -78,12 +71,6 @@ export default function PagosPipelinePage() {
           <p className="text-xs text-slate-400">Total pagado</p>
           <p className="text-lg font-semibold text-emerald-600">
             S/ {totalPagado.toFixed(2)}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-slate-200/70 bg-white p-3 text-center shadow-sm">
-          <p className="text-xs text-slate-400">Por cobrar</p>
-          <p className="text-lg font-semibold text-amber-600">
-            S/ {totalPorCobrar.toFixed(2)}
           </p>
         </div>
       </div>

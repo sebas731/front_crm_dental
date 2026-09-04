@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -7,9 +8,8 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input, Select } from "@/components/ui/Field";
 import { FileInput } from "@/components/ui/FileInput";
 import { useAuth } from "@/context/AuthContext";
-import { ESTADO_CUOTA } from "@/lib/estados";
 import { puedeGestionarPagos } from "@/lib/roles";
-import { registrarPago, updateCuota, validarPago } from "@/services/ventas";
+import { registrarPago, updateCuota } from "@/services/ventas";
 import type { Cuota, MetodoPago } from "@/types";
 
 const METODOS: MetodoPago[] = [
@@ -32,14 +32,14 @@ export function CuotaRow({
 }) {
   const { user } = useAuth();
   const puedePagar = puedeGestionarPagos(user) && !readOnly;
-  const est = ESTADO_CUOTA[cuota.estado];
-  const pendiente = cuota.estado === "PENDIENTE";
+  const pagada = cuota.estado === "PAGADO";
 
   const [nuevaFecha, setNuevaFecha] = useState(cuota.fecha_limite ?? "");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const [pagando, setPagando] = useState(false);
+  const [confirmarPago, setConfirmarPago] = useState(false);
   const [monto, setMonto] = useState(cuota.saldo);
   const [metodo, setMetodo] = useState<MetodoPago>("EFECTIVO");
   const [archivo, setArchivo] = useState<File | null>(null);
@@ -56,8 +56,7 @@ export function CuotaRow({
     }
   }
 
-  async function handlePago(e: React.FormEvent) {
-    e.preventDefault();
+  async function registrar() {
     setBusy(true);
     try {
       await registrarPago(
@@ -70,6 +69,7 @@ export function CuotaRow({
         archivo ?? undefined,
       );
       setPagando(false);
+      setConfirmarPago(false);
       setArchivo(null);
       setFileKey((k) => k + 1);
       await onChanged();
@@ -81,15 +81,17 @@ export function CuotaRow({
   return (
     <div className="rounded-xl border border-slate-200/70 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <span className="font-medium text-slate-800">
-            Cuota {cuota.numero} · S/ {cuota.monto}
-          </span>
-          <span className="ml-2 text-xs text-slate-400">
-            vence {cuota.fecha_limite ?? "—"} · pagado S/ {cuota.total_pagado}
-          </span>
-        </div>
-        <Badge label={est.label} color={est.color} />
+        <span className="font-medium text-slate-800">
+          Cuota {cuota.numero} · S/ {cuota.monto}
+          {cuota.fecha_limite && (
+            <span className="ml-2 text-xs font-normal text-slate-400">
+              vence {cuota.fecha_limite}
+            </span>
+          )}
+        </span>
+        {pagada && (
+          <Badge label="Pagado" color="#10b981" />
+        )}
       </div>
 
       {/* Pagos registrados */}
@@ -111,27 +113,15 @@ export function CuotaRow({
               </a>
             )}
           </span>
-          {p.validado ? (
-            <Badge label="Validado" color="#10b981" />
-          ) : puedePagar ? (
-            <Button
-              variant="secondary"
-              className="px-3 py-1.5 text-xs"
-              onClick={async () => {
-                await validarPago(p.id);
-                await onChanged();
-              }}
-            >
-              Validar
-            </Button>
-          ) : (
-            <Badge label="Sin validar" color="#f59e0b" />
-          )}
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Pagado
+          </span>
         </div>
       ))}
 
-      {/* Acciones para cuota pendiente */}
-      {pendiente && !readOnly && (
+      {/* Acciones para cuota no pagada */}
+      {!pagada && !readOnly && (
         <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-slate-100 pt-3">
           <Input
             label="Reprogramar a"
@@ -152,7 +142,10 @@ export function CuotaRow({
           {puedePagar && !pagando && (
             <Button
               className="px-3 py-1.5 text-xs"
-              onClick={() => setPagando(true)}
+              onClick={() => {
+                setMonto(cuota.saldo);
+                setPagando(true);
+              }}
             >
               Registrar pago
             </Button>
@@ -160,18 +153,15 @@ export function CuotaRow({
         </div>
       )}
 
+      {/* Formulario de pago (monto + método + comprobante) */}
       {pagando && (
-        <form
-          onSubmit={handlePago}
-          className="mt-3 grid grid-cols-2 items-end gap-2 border-t border-slate-100 pt-3"
-        >
+        <div className="mt-3 grid grid-cols-2 items-end gap-2 border-t border-slate-100 pt-3">
           <Input
             label="Monto (S/)"
             type="number"
             step="0.01"
             value={monto}
             onChange={(e) => setMonto(e.target.value)}
-            required
           />
           <Select
             label="Método"
@@ -185,15 +175,14 @@ export function CuotaRow({
             ))}
           </Select>
           <div className="col-span-2">
-            <FileInput
-              key={fileKey}
-              label="Comprobante"
-              onChange={setArchivo}
-            />
+            <FileInput key={fileKey} label="Comprobante" onChange={setArchivo} />
           </div>
           <div className="col-span-2 flex gap-2">
-            <Button type="submit" disabled={busy}>
-              {busy ? "Guardando…" : "Confirmar pago"}
+            <Button
+              onClick={() => setConfirmarPago(true)}
+              disabled={!monto || Number(monto) <= 0}
+            >
+              Registrar pago
             </Button>
             <Button
               type="button"
@@ -203,8 +192,24 @@ export function CuotaRow({
               Cancelar
             </Button>
           </div>
-        </form>
+        </div>
       )}
+
+      {/* Confirmación del pago (cuadro con el monto) */}
+      <ConfirmDialog
+        open={confirmarPago}
+        title="Confirmar pago"
+        loading={busy}
+        confirmLabel="Confirmar"
+        onCancel={() => setConfirmarPago(false)}
+        onConfirm={registrar}
+      >
+        ¿Registrar un pago de{" "}
+        <span className="rounded bg-emerald-50 px-1.5 py-0.5 font-semibold text-emerald-700">
+          S/ {Number(monto || 0).toFixed(2)}
+        </span>{" "}
+        ({metodo}) para la cuota {cuota.numero}?
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={confirmOpen}

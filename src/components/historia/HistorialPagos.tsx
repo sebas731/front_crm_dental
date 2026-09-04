@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
-  Clock,
   ExternalLink,
 } from "lucide-react";
 import { Fragment, useState } from "react";
@@ -60,7 +59,6 @@ export function HistorialPagos({
 }) {
   const filas = filasDePagos(ventas);
   const totalPagado = filas.reduce((s, f) => s + Number(f.monto || 0), 0);
-  const saldo = ventas.reduce((s, v) => s + Number(v.saldo || 0), 0);
   const [abierto, setAbierto] = useState<string | null>(null);
 
   const servicioName = (id: string) =>
@@ -76,19 +74,11 @@ export function HistorialPagos({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl border border-slate-200/70 bg-slate-50 p-3">
-          <p className="text-xs text-slate-400">Total pagado</p>
-          <p className="text-lg font-semibold text-emerald-600">
-            S/ {totalPagado.toFixed(2)}
-          </p>
-        </div>
-        <div className="rounded-xl border border-slate-200/70 bg-slate-50 p-3">
-          <p className="text-xs text-slate-400">Saldo por cobrar</p>
-          <p className="text-lg font-semibold text-amber-600">
-            S/ {saldo.toFixed(2)}
-          </p>
-        </div>
+      <div className="rounded-xl border border-slate-200/70 bg-slate-50 p-3">
+        <p className="text-xs text-slate-400">Total pagado</p>
+        <p className="text-lg font-semibold text-emerald-600">
+          S/ {totalPagado.toFixed(2)}
+        </p>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-slate-200/70">
@@ -133,17 +123,10 @@ export function HistorialPagos({
                       S/ {f.monto}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      {f.validado ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Validado
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600">
-                          <Clock className="h-3.5 w-3.5" />
-                          Pendiente
-                        </span>
-                      )}
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Pagado
+                      </span>
                     </td>
                   </tr>
                   {open && (
@@ -209,18 +192,6 @@ export function HistorialPagos({
                               {f.referencia && (
                                 <Detalle k="Referencia" v={f.referencia} />
                               )}
-                              <Detalle
-                                k="Validación"
-                                v={
-                                  f.validado
-                                    ? `Validado${
-                                        f.fechaValidacion
-                                          ? ` el ${f.fechaValidacion.slice(0, 10)}`
-                                          : ""
-                                      }`
-                                    : "Pendiente de validar"
-                                }
-                              />
                               {f.comprobante && (
                                 <div className="flex gap-2 pt-1">
                                   <a
