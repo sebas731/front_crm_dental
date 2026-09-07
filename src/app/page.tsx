@@ -11,14 +11,18 @@ import {
   Users,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { BarChart, DonutChart } from "@/components/dashboard/Charts";
 import { FunnelCard } from "@/components/dashboard/FunnelCard";
 import { ProximasCitas } from "@/components/dashboard/ProximasCitas";
 import { TareasCard } from "@/components/dashboard/TareasCard";
 import { VentasAnalytics } from "@/components/dashboard/VentasAnalytics";
+import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { useAuth } from "@/context/AuthContext";
+import { pacientesPorProcedencia, pagosPorMetodo } from "@/lib/analytics";
 import { alertasCuotas } from "@/lib/alertas";
 import { hoyLocal } from "@/lib/fechas";
+import { rangoDePeriodo } from "@/lib/filtros";
 import { esAdministrativo } from "@/lib/roles";
 import { listCitas, listServicios } from "@/services/citas";
 import { listVentas } from "@/services/ventas";
@@ -83,6 +87,15 @@ export default function DashboardPage() {
     [ventas],
   );
   const alertas = useMemo(() => alertasCuotas(ventas, 7), [ventas]);
+  const pagosMes = useMemo(() => {
+    const r = rangoDePeriodo("mes");
+    return pagosPorMetodo(ventas, r.desde, r.hasta);
+  }, [ventas]);
+  const cobradoMes = pagosMes.reduce((a, m) => a + m.monto, 0);
+  const procedencias = useMemo(
+    () => pacientesPorProcedencia(pacientes),
+    [pacientes],
+  );
   const proximas = useMemo(() => {
     const hoy = hoyLocal();
     // Solo citas realmente pendientes (no atendidas, canceladas ni inasistencias).
@@ -184,6 +197,29 @@ export default function DashboardPage() {
             </div>
           ) : (
             <FunnelCard citas={citas} />
+          )}
+
+          {admin && (
+            <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
+              <Card title="Cobros por método (este mes)">
+                <DonutChart
+                  data={pagosMes.map((m) => ({
+                    label: m.metodo,
+                    value: m.monto,
+                  }))}
+                  format={(v) => `S/ ${v.toFixed(0)}`}
+                  centro={`S/ ${cobradoMes.toFixed(0)}`}
+                />
+              </Card>
+              <Card title="¿De dónde vienen los pacientes?">
+                <BarChart
+                  data={procedencias.map((p) => ({
+                    label: p.procedencia,
+                    value: p.cantidad,
+                  }))}
+                />
+              </Card>
+            </div>
           )}
 
           <ProximasCitas citas={proximas} nombre={nombre} />

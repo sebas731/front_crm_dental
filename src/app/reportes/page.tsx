@@ -3,16 +3,15 @@
 import { Printer } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { BarChart, DonutChart } from "@/components/dashboard/Charts";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { LogoMark } from "@/components/ui/Logo";
-import { ventasPorServicio } from "@/lib/analytics";
-import { ESTADO_VENTA } from "@/lib/estados";
+import { cobrosPorProcedencia, pagosPorMetodo } from "@/lib/analytics";
 import { rangoDePeriodo } from "@/lib/filtros";
-import { listServicios } from "@/services/citas";
 import { listPacientes } from "@/services/pacientes";
 import { listVentas } from "@/services/ventas";
-import type { Paciente, ServicioDental, Venta } from "@/types";
+import type { Paciente, Venta } from "@/types";
 
 const money = (v: number) => `S/ ${v.toFixed(2)}`;
 
@@ -20,19 +19,17 @@ export default function ReportesPage() {
   const rango = rangoDePeriodo("mes");
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
-  const [servicios, setServicios] = useState<ServicioDental[]>([]);
   const [desde, setDesde] = useState(rango.desde);
   const [hasta, setHasta] = useState(rango.hasta);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    Promise.all([listVentas(), listPacientes(), listServicios()])
-      .then(([v, p, s]) => {
+    Promise.all([listVentas(), listPacientes()])
+      .then(([v, p]) => {
         if (!active) return;
         setVentas(v.results);
         setPacientes(p.results);
-        setServicios(s.results);
         setLoading(false);
       })
       .catch(() => {
@@ -43,33 +40,16 @@ export default function ReportesPage() {
     };
   }, []);
 
-  const pacienteName = (id: string) => {
-    const p = pacientes.find((x) => x.id === id);
-    return p ? `${p.nombres} ${p.apellido_paterno}` : "—";
-  };
-  const servicioName = (id: string) =>
-    servicios.find((x) => x.id === id)?.nombre ?? "Servicio";
-
-  // Ventas del rango (por fecha de registro), sin anuladas.
-  const filtradas = useMemo(
-    () =>
-      ventas.filter((v) => {
-        if (v.estado === "ANULADO") return false;
-        const f = v.created_at.slice(0, 10);
-        return (!desde || f >= desde) && (!hasta || f <= hasta);
-      }),
+  const metodos = useMemo(
+    () => pagosPorMetodo(ventas, desde, hasta),
     [ventas, desde, hasta],
   );
-
-  const totalVendido = filtradas.reduce((a, v) => a + Number(v.total), 0);
-  const totalPagado = filtradas.reduce(
-    (a, v) => a + Number(v.total_pagado),
-    0,
+  const procedencia = useMemo(
+    () => cobrosPorProcedencia(ventas, pacientes, desde, hasta),
+    [ventas, pacientes, desde, hasta],
   );
-  const porServicio = useMemo(
-    () => ventasPorServicio(filtradas),
-    [filtradas],
-  );
+  const totalCobrado = metodos.reduce((a, m) => a + m.monto, 0);
+  const cantPagos = metodos.reduce((a, m) => a + m.cantidad, 0);
 
   const generado = new Date().toLocaleString("es", {
     dateStyle: "long",
@@ -77,6 +57,7 @@ export default function ReportesPage() {
   });
   const fmt = (d: string) =>
     d ? new Date(d + "T00:00:00").toLocaleDateString("es") : "—";
+  const pct = (m: number) => (totalCobrado ? (m / totalCobrado) * 100 : 0);
 
   return (
     <AppShell>
@@ -84,10 +65,10 @@ export default function ReportesPage() {
       <div className="no-print mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-800 md:text-2xl">
-            Reporte de ventas
+            Reporte de pagos
           </h1>
           <p className="text-sm text-slate-500">
-            Ventas y servicios por rango de fechas
+            Cobros por método y procedencia, por rango de fechas
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-2">
@@ -112,7 +93,6 @@ export default function ReportesPage() {
       {loading ? (
         <p className="text-slate-500">Cargando…</p>
       ) : (
-        /* Área imprimible */
         <div className="print-area rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm">
           {/* Cabecera con la marca */}
           <div
@@ -128,7 +108,7 @@ export default function ReportesPage() {
                 <p className="text-sm font-semibold tracking-wide">
                   DENTAL STUDIO
                 </p>
-                <p className="text-xs text-white/80">Reporte de ventas</p>
+                <p className="text-xs text-white/80">Reporte de pagos</p>
               </div>
             </div>
             <div className="text-right text-xs text-white/90">
@@ -142,12 +122,12 @@ export default function ReportesPage() {
           {/* Resumen */}
           <div className="mb-6 grid grid-cols-3 gap-3">
             {[
-              { l: "Ventas", v: String(filtradas.length), c: "text-slate-800" },
-              { l: "Total vendido", v: money(totalVendido), c: "text-teal-700" },
+              { l: "Total cobrado", v: money(totalCobrado), c: "text-emerald-600" },
+              { l: "Pagos", v: String(cantPagos), c: "text-slate-800" },
               {
-                l: "Total cobrado",
-                v: money(totalPagado),
-                c: "text-emerald-600",
+                l: "Fuentes activas",
+                v: String(procedencia.length),
+                c: "text-teal-700",
               },
             ].map((x) => (
               <div
@@ -160,44 +140,47 @@ export default function ReportesPage() {
             ))}
           </div>
 
-          {/* Desglose por servicio */}
-          <h2 className="mb-2 text-sm font-semibold text-slate-700">
-            Servicios vendidos
+          {/* Pagos por método */}
+          <h2 className="mb-3 text-sm font-semibold text-slate-700">
+            Pagos por método
           </h2>
+          <div className="mb-4">
+            <DonutChart
+              data={metodos.map((m) => ({ label: m.metodo, value: m.monto }))}
+              format={money}
+              centro={money(totalCobrado)}
+            />
+          </div>
           <table className="mb-6 w-full text-left text-sm">
             <thead>
               <tr className="bg-teal-50 text-xs text-teal-700">
-                <th className="rounded-l-lg px-3 py-2 font-semibold">
-                  Servicio
-                </th>
-                <th className="px-3 py-2 text-right font-semibold">Cant.</th>
-                <th className="px-3 py-2 text-right font-semibold">Vendido</th>
+                <th className="rounded-l-lg px-3 py-2 font-semibold">Método</th>
+                <th className="px-3 py-2 text-right font-semibold">Pagos</th>
+                <th className="px-3 py-2 text-right font-semibold">Monto</th>
                 <th className="rounded-r-lg px-3 py-2 text-right font-semibold">
-                  Cobrado
+                  %
                 </th>
               </tr>
             </thead>
             <tbody>
-              {porServicio.length === 0 ? (
+              {metodos.length === 0 ? (
                 <tr>
                   <td className="px-3 py-3 text-slate-400" colSpan={4}>
-                    Sin servicios en el rango.
+                    Sin pagos en el rango.
                   </td>
                 </tr>
               ) : (
-                porServicio.map((s) => (
-                  <tr key={s.servicio} className="border-b border-slate-100">
-                    <td className="px-3 py-2 text-slate-700">
-                      {servicioName(s.servicio)}
-                    </td>
+                metodos.map((m) => (
+                  <tr key={m.metodo} className="border-b border-slate-100">
+                    <td className="px-3 py-2 text-slate-700">{m.metodo}</td>
                     <td className="px-3 py-2 text-right text-slate-600">
-                      {s.cantidad}
+                      {m.cantidad}
                     </td>
                     <td className="px-3 py-2 text-right font-medium text-slate-800">
-                      {money(s.vendido)}
+                      {money(m.monto)}
                     </td>
-                    <td className="px-3 py-2 text-right text-emerald-600">
-                      {money(s.pagado)}
+                    <td className="px-3 py-2 text-right text-slate-500">
+                      {pct(m.monto).toFixed(0)}%
                     </td>
                   </tr>
                 ))
@@ -205,50 +188,52 @@ export default function ReportesPage() {
             </tbody>
           </table>
 
-          {/* Detalle de ventas */}
-          <h2 className="mb-2 text-sm font-semibold text-slate-700">
-            Ventas del período
+          {/* Procedencia de pacientes */}
+          <h2 className="mb-3 text-sm font-semibold text-slate-700">
+            ¿De dónde vienen los pacientes?
           </h2>
+          <div className="mb-4">
+            <BarChart
+              data={procedencia.map((p) => ({
+                label: `${p.procedencia} (${p.pacientes})`,
+                value: p.monto,
+              }))}
+              format={money}
+            />
+          </div>
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="bg-teal-50 text-xs text-teal-700">
-                <th className="rounded-l-lg px-3 py-2 font-semibold">Fecha</th>
-                <th className="px-3 py-2 font-semibold">N.º</th>
-                <th className="px-3 py-2 font-semibold">Paciente</th>
-                <th className="px-3 py-2 font-semibold">Estado</th>
+                <th className="rounded-l-lg px-3 py-2 font-semibold">
+                  Procedencia
+                </th>
+                <th className="px-3 py-2 text-right font-semibold">Pacientes</th>
                 <th className="rounded-r-lg px-3 py-2 text-right font-semibold">
-                  Total
+                  Cobrado
                 </th>
               </tr>
             </thead>
             <tbody>
-              {filtradas.length === 0 ? (
+              {procedencia.length === 0 ? (
                 <tr>
-                  <td className="px-3 py-3 text-slate-400" colSpan={5}>
-                    No hay ventas en el rango seleccionado.
+                  <td className="px-3 py-3 text-slate-400" colSpan={3}>
+                    Sin datos en el rango.
                   </td>
                 </tr>
               ) : (
-                filtradas
-                  .slice()
-                  .sort((a, b) => b.created_at.localeCompare(a.created_at))
-                  .map((v) => (
-                    <tr key={v.id} className="border-b border-slate-100">
-                      <td className="px-3 py-2 text-slate-600">
-                        {v.created_at.slice(0, 10)}
-                      </td>
-                      <td className="px-3 py-2 text-slate-600">{v.numero}</td>
-                      <td className="px-3 py-2 text-slate-700">
-                        {pacienteName(v.paciente)}
-                      </td>
-                      <td className="px-3 py-2 text-slate-600">
-                        {ESTADO_VENTA[v.estado].label}
-                      </td>
-                      <td className="px-3 py-2 text-right font-medium text-slate-800">
-                        {money(Number(v.total))}
-                      </td>
-                    </tr>
-                  ))
+                procedencia.map((p) => (
+                  <tr key={p.procedencia} className="border-b border-slate-100">
+                    <td className="px-3 py-2 text-slate-700">
+                      {p.procedencia}
+                    </td>
+                    <td className="px-3 py-2 text-right text-slate-600">
+                      {p.pacientes}
+                    </td>
+                    <td className="px-3 py-2 text-right font-medium text-slate-800">
+                      {money(p.monto)}
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
