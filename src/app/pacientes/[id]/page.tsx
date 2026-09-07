@@ -35,7 +35,7 @@ import type {
   Venta,
 } from "@/types";
 
-type Tab = "datos" | "historia" | "atenciones" | "pagos";
+type Tab = "datos" | "historia" | "odontograma" | "atenciones" | "pagos";
 
 export default function PacienteDetailPage({
   params,
@@ -148,6 +148,7 @@ export default function PacienteDetailPage({
   const tabs: { key: Tab; label: string }[] = [
     { key: "datos", label: "Datos del paciente" },
     { key: "historia", label: "Ficha clínica" },
+    { key: "odontograma", label: "Odontograma" },
     { key: "atenciones", label: `Atenciones (${atendidasCount})` },
     ...(puedeVerPagos
       ? [{ key: "pagos" as Tab, label: "Facturación y pagos" }]
@@ -239,15 +240,26 @@ export default function PacienteDetailPage({
                 readOnly={!puedeEditar}
               />
             </Card>
-            <Card title="Odontograma">
-              <OdontogramaEditor
-                historiaId={historia.id}
-                odontograma={odontograma}
-                onSaved={reloadHistoria}
-                readOnly={!puedeEditar}
-              />
-            </Card>
           </div>
+        ))}
+
+      {tab === "odontograma" &&
+        (!historia ? (
+          <Card title="Odontograma">
+            <p className="flex items-center gap-2 text-sm text-slate-500">
+              <ClipboardList className="h-4 w-4" />
+              Primero creá la historia clínica (pestaña “Ficha clínica”).
+            </p>
+          </Card>
+        ) : (
+          <Card title="Odontograma">
+            <OdontogramaEditor
+              historiaId={historia.id}
+              odontograma={odontograma}
+              onSaved={reloadHistoria}
+              readOnly={!puedeEditar}
+            />
+          </Card>
         ))}
 
       {tab === "atenciones" && (
