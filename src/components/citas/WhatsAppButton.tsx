@@ -67,7 +67,9 @@ export function WhatsAppButton({
   // Solo administrativos y asistentes envían WhatsApp; el médico no.
   if (!puedeCrearCitas(user)) return null;
 
-  const wa = paciente ? toWa(paciente.telefono || paciente.numero) : "";
+  const wa = paciente
+    ? toWa(paciente.whatsapp || paciente.telefono || paciente.numero)
+    : "";
   const nombre = paciente
     ? `${paciente.nombres} ${paciente.apellido_paterno}`.trim()
     : "";

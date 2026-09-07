@@ -27,6 +27,7 @@ function initFrom(p?: Paciente | null): PacienteInput {
     nombre_madre: p?.nombre_madre ?? "",
     direccion: p?.direccion ?? "",
     telefono: p?.telefono ?? "",
+    whatsapp: p?.whatsapp ?? "",
     correo: p?.correo ?? "",
   };
 }
@@ -190,6 +191,11 @@ export function PacienteForm({
         label="Teléfono"
         value={form.telefono ?? ""}
         onChange={(e) => set("telefono", e.target.value)}
+      />
+      <Input
+        label="WhatsApp (para recordatorios)"
+        value={form.whatsapp ?? ""}
+        onChange={(e) => set("whatsapp", e.target.value)}
       />
       <Input
         label="Correo"

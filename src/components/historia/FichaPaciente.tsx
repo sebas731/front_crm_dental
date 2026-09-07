@@ -3,12 +3,6 @@ import { procedenciaLabel } from "@/lib/procedencia";
 import type { Paciente } from "@/types";
 
 const SEXO: Record<string, string> = { M: "Masculino", F: "Femenino" };
-const TIPO_DOC: Record<string, string> = {
-  DNI: "DNI",
-  CE: "Carné de extranjería",
-  PAS: "Pasaporte",
-  PART: "Partida de nacimiento",
-};
 
 function Row({
   label,
@@ -29,25 +23,9 @@ function Row({
 
 export function FichaPaciente({ paciente }: { paciente: Paciente }) {
   const p = paciente;
-  const iniciales =
-    `${p.nombres[0] ?? ""}${p.apellido_paterno[0] ?? ""}`.toUpperCase();
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <div className="flex flex-col items-center text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-600 text-xl font-semibold text-white ring-2 ring-white">
-            {iniciales}
-          </span>
-          <h2 className="mt-3 text-lg font-semibold text-slate-800">
-            {p.nombres} {p.apellido_paterno} {p.apellido_materno}
-          </h2>
-          <p className="text-sm text-slate-500">
-            {TIPO_DOC[p.tipo_documento]} {p.numero_documento}
-          </p>
-        </div>
-      </Card>
-
+    <div className="grid gap-4 md:grid-cols-2">
       <Card title="Datos personales">
         <div className="divide-y divide-slate-100">
           <Row label="Sexo" value={SEXO[p.sexo]} />
@@ -62,6 +40,7 @@ export function FichaPaciente({ paciente }: { paciente: Paciente }) {
       <Card title="Contacto">
         <div className="divide-y divide-slate-100">
           <Row label="Teléfono" value={p.telefono} />
+          <Row label="WhatsApp" value={p.whatsapp} />
           <Row label="Correo" value={p.correo} />
           <Row label="Dirección" value={p.direccion} />
         </div>

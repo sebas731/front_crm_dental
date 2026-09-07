@@ -103,6 +103,7 @@ export interface Paciente extends BaseModel {
   nombre_madre: string;
   direccion: string;
   telefono: string;
+  whatsapp: string;
   acompanantes: Acompanante[];
 }
 
