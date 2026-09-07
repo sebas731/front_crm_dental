@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CalendarRange,
   CreditCard,
+  FileBarChart,
   LayoutDashboard,
   ReceiptText,
   Stethoscope,
@@ -35,6 +36,12 @@ export const NAV_ITEMS: NavItem[] = [
     soloAdmin: true,
   },
   { href: "/servicios", label: "Servicios", icon: Briefcase, soloAdmin: true },
+  {
+    href: "/reportes",
+    label: "Reportes",
+    icon: FileBarChart,
+    soloAdmin: true,
+  },
   {
     href: "/medicos",
     label: "Médicos",
