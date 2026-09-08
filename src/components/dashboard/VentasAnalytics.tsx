@@ -1,25 +1,35 @@
 import { Banknote, CalendarRange, ReceiptText, TrendingUp } from "lucide-react";
+import { BarChart, DonutChart } from "@/components/dashboard/Charts";
 import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import {
+  cobrosPorProcedencia,
+  pagosPorMetodo,
   rankingVendedores,
   resumenVentas,
   ventasPorServicio,
 } from "@/lib/analytics";
-import type { ServicioDental, User, Venta } from "@/types";
+import type { Paciente, ServicioDental, User, Venta } from "@/types";
+
+const money = (v: number) => `S/ ${v.toFixed(0)}`;
 
 export function VentasAnalytics({
   ventas,
   servicios,
   users,
+  pacientes,
 }: {
   ventas: Venta[];
   servicios: ServicioDental[];
   users: User[];
+  pacientes: Paciente[];
 }) {
   const r = resumenVentas(ventas);
   const porServicio = ventasPorServicio(ventas).slice(0, 8);
   const vendedores = rankingVendedores(ventas, users);
+  const metodos = pagosPorMetodo(ventas);
+  const procedencia = cobrosPorProcedencia(ventas, pacientes);
+  const cobradoTotal = metodos.reduce((a, m) => a + m.monto, 0);
   const maxVendido = Math.max(1, ...porServicio.map((s) => s.vendido));
   const servicioName = (id: string) =>
     servicios.find((s) => s.id === id)?.nombre ?? "Servicio";
@@ -122,6 +132,26 @@ export function VentasAnalytics({
               ))}
             </ul>
           )}
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
+        <Card title="Cobros por método">
+          <DonutChart
+            data={metodos.map((m) => ({ label: m.metodo, value: m.monto }))}
+            format={money}
+            centro={money(cobradoTotal)}
+          />
+        </Card>
+
+        <Card title="¿De dónde vienen los pacientes?">
+          <BarChart
+            data={procedencia.map((p) => ({
+              label: `${p.procedencia} (${p.pacientes})`,
+              value: p.monto,
+            }))}
+            format={money}
+          />
         </Card>
       </div>
     </div>
