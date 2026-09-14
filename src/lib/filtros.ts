@@ -1,9 +1,10 @@
-import type { Cita } from "@/types";
+import type { Cita, EstadoCita } from "@/types";
 
 export interface CitaFiltros {
   paciente: string;
   servicio: string;
-  estado: string;
+  // Estados seleccionados (multi). Vacío = todos.
+  estados: EstadoCita[];
   desde: string;
   hasta: string;
 }
@@ -11,7 +12,7 @@ export interface CitaFiltros {
 export const FILTROS_VACIOS: CitaFiltros = {
   paciente: "",
   servicio: "",
-  estado: "",
+  estados: [],
   desde: "",
   hasta: "",
 };
@@ -21,7 +22,7 @@ export function filterCitas(citas: Cita[], f: CitaFiltros): Cita[] {
   return citas.filter((c) => {
     if (f.paciente && c.paciente !== f.paciente) return false;
     if (f.servicio && c.servicio !== f.servicio) return false;
-    if (f.estado && c.estado !== f.estado) return false;
+    if (f.estados.length && !f.estados.includes(c.estado)) return false;
     if (f.desde && c.fecha < f.desde) return false;
     if (f.hasta && c.fecha > f.hasta) return false;
     return true;
@@ -29,7 +30,9 @@ export function filterCitas(citas: Cita[], f: CitaFiltros): Cita[] {
 }
 
 export function hayFiltrosActivos(f: CitaFiltros): boolean {
-  return Boolean(f.paciente || f.servicio || f.estado || f.desde || f.hasta);
+  return Boolean(
+    f.paciente || f.servicio || f.estados.length || f.desde || f.hasta,
+  );
 }
 
 export type PeriodoRango = "hoy" | "semana" | "mes" | "todas";

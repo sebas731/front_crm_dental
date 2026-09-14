@@ -1,16 +1,15 @@
 "use client";
 
 import { Filter, X } from "lucide-react";
-import { Input, Select } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Field";
 import { PacientePicker } from "@/components/ui/PacientePicker";
 import { ServicioSelect } from "@/components/servicios/ServicioSelect";
-import { ESTADO_CITA } from "@/lib/estados";
 import {
   FILTROS_VACIOS,
   hayFiltrosActivos,
   type CitaFiltros,
 } from "@/lib/filtros";
-import type { EstadoCita, Paciente, ServicioDental } from "@/types";
+import type { Paciente, ServicioDental } from "@/types";
 
 export function CitasFilterBar({
   filtros,
@@ -54,18 +53,6 @@ export function CitasFilterBar({
           onChange={(v) => set({ servicio: v })}
           placeholder="Todos"
         />
-        <Select
-          label="Estado"
-          value={filtros.estado}
-          onChange={(e) => set({ estado: e.target.value })}
-        >
-          <option value="">Todos</option>
-          {(Object.keys(ESTADO_CITA) as EstadoCita[]).map((k) => (
-            <option key={k} value={k}>
-              {ESTADO_CITA[k].label}
-            </option>
-          ))}
-        </Select>
         <Input
           label="Desde"
           type="date"

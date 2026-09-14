@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { CitaCardList } from "@/components/citas/CitaCardList";
 import { CitaForm } from "@/components/citas/CitaForm";
 import { CitasFilterBar } from "@/components/citas/CitasFilterBar";
+import { EstadoCitaFilter } from "@/components/citas/EstadoCitaFilter";
 import { PeriodoTabs } from "@/components/citas/PeriodoTabs";
 import { WhatsAppButton } from "@/components/citas/WhatsAppButton";
 import { useAuth } from "@/context/AuthContext";
@@ -158,8 +159,14 @@ export default function CitasPage() {
         </div>
       )}
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-col gap-3">
         <PeriodoTabs activo={periodoActivo} onSelect={seleccionarPeriodo} />
+        <div className="rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm">
+          <EstadoCitaFilter
+            value={filtros.estados}
+            onChange={(estados) => setFiltros((f) => ({ ...f, estados }))}
+          />
+        </div>
       </div>
 
       <CitasFilterBar
