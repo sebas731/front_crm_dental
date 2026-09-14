@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { UserForm } from "@/components/usuarios/UserForm";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Pagination } from "@/components/ui/Pagination";
 import { useAuth } from "@/context/AuthContext";
 import { mensajeError } from "@/lib/apiError";
 import { ROL_LABEL } from "@/lib/roles";
@@ -19,6 +20,8 @@ import type { User, UserInput } from "@/types";
 export default function UsuariosPage() {
   const { user: actual } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [modo, setModo] = useState<"lista" | "nuevo" | { editar: User }>(
     "lista",
@@ -26,10 +29,11 @@ export default function UsuariosPage() {
 
   useEffect(() => {
     let active = true;
-    listUsers()
+    listUsers({ page })
       .then((r) => {
         if (!active) return;
         setUsers(r.results);
+        setCount(r.count);
         setLoading(false);
       })
       .catch(() => {
@@ -38,10 +42,17 @@ export default function UsuariosPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [page]);
+
+  function goPage(p: number) {
+    setLoading(true);
+    setPage(p);
+  }
 
   async function reload() {
-    setUsers((await listUsers()).results);
+    const r = await listUsers({ page });
+    setUsers(r.results);
+    setCount(r.count);
   }
 
   async function handleCreate(data: UserInput) {
@@ -191,6 +202,8 @@ export default function UsuariosPage() {
           </tbody>
         </table>
       </div>
+
+      {!loading && <Pagination page={page} count={count} onPage={goPage} />}
     </AppShell>
   );
 }

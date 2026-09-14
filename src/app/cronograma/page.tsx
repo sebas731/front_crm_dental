@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { PacientePicker } from "@/components/ui/PacientePicker";
-import { listVentas } from "@/services/ventas";
-import { listPacientes } from "@/services/pacientes";
+import { listAllVentas } from "@/services/ventas";
+import { listAllPacientes } from "@/services/pacientes";
 import type { Cuota, Paciente, Venta } from "@/types";
 
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -42,11 +42,11 @@ export default function CronogramaPage() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([listVentas(), listPacientes()])
+    Promise.all([listAllVentas(), listAllPacientes()])
       .then(([v, p]) => {
         if (!active) return;
-        setVentas(v.results);
-        setPacientes(p.results);
+        setVentas(v);
+        setPacientes(p);
         setLoading(false);
       })
       .catch(() => {

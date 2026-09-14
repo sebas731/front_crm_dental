@@ -20,10 +20,10 @@ import { useAuth } from "@/context/AuthContext";
 import { alertasCuotas } from "@/lib/alertas";
 import { hoyLocal } from "@/lib/fechas";
 import { esAdministrativo } from "@/lib/roles";
-import { listCitas, listServicios } from "@/services/citas";
-import { listVentas } from "@/services/ventas";
-import { listPacientes } from "@/services/pacientes";
-import { listUsers } from "@/services/users";
+import { listAllCitas, listAllServicios } from "@/services/citas";
+import { listAllVentas } from "@/services/ventas";
+import { listAllPacientes } from "@/services/pacientes";
+import { listAllUsers } from "@/services/users";
 import type { Cita, Paciente, ServicioDental, User, Venta } from "@/types";
 
 type Vista = "resumen" | "ventas";
@@ -42,22 +42,22 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let active = true;
-    const empty = Promise.resolve({ results: [] });
+    const none = <T,>() => Promise.resolve([] as T[]);
     Promise.all([
-      listCitas(),
-      listPacientes(),
-      admin ? listVentas() : empty,
-      admin ? listServicios() : empty,
-      admin ? listUsers() : empty,
+      listAllCitas(),
+      listAllPacientes(),
+      admin ? listAllVentas() : none<Venta>(),
+      admin ? listAllServicios() : none<ServicioDental>(),
+      admin ? listAllUsers() : none<User>(),
     ])
       .then(([c, p, v, s, u]) => {
         if (!active) return;
-        setCitas(c.results);
-        setPacientes(p.results);
-        setPacientesCount(p.count);
-        setVentas((v as { results: Venta[] }).results);
-        setServicios((s as { results: ServicioDental[] }).results);
-        setUsers((u as { results: User[] }).results);
+        setCitas(c);
+        setPacientes(p);
+        setPacientesCount(p.length);
+        setVentas(v);
+        setServicios(s);
+        setUsers(u);
         setLoading(false);
       })
       .catch(() => {

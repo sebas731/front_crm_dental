@@ -1,4 +1,4 @@
-import { api, apiFetch } from "./api";
+import { api, apiFetch, fetchAllPages } from "./api";
 import type {
   Adicional,
   Cuota,
@@ -10,15 +10,30 @@ import type {
 } from "@/types";
 
 // --- Ventas ---
+/** Una página de ventas (15/página). Para la tabla con paginación. */
 export function listVentas(params?: {
   paciente?: string;
   estado?: string;
+  page?: number;
 }): Promise<Paginated<Venta>> {
   const qs = new URLSearchParams();
   if (params?.paciente) qs.set("paciente", params.paciente);
   if (params?.estado) qs.set("estado", params.estado);
-  qs.set("page_size", "300");
+  if (params?.page) qs.set("page", String(params.page));
   return api.get<Paginated<Venta>>(`/ventas/?${qs.toString()}`);
+}
+
+/** TODAS las ventas (recorre todas las páginas). Para dashboard, reportes,
+ *  pagos, cronograma y la ficha del paciente, que agregan sobre el total. */
+export function listAllVentas(params?: {
+  paciente?: string;
+  estado?: string;
+}): Promise<Venta[]> {
+  const qs = new URLSearchParams();
+  if (params?.paciente) qs.set("paciente", params.paciente);
+  if (params?.estado) qs.set("estado", params.estado);
+  const q = qs.toString();
+  return fetchAllPages<Venta>(`/ventas/${q ? `?${q}` : ""}`);
 }
 
 export function getVenta(id: string): Promise<Venta> {

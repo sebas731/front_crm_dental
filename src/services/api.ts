@@ -8,6 +8,10 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
 
+/** Tamaño de página del backend (StandardPagination.page_size). Las tablas
+ *  del front lo usan para calcular la cantidad de páginas. */
+export const PAGE_SIZE = 15;
+
 const ACCESS_KEY = "access_token";
 const REFRESH_KEY = "refresh_token";
 
@@ -180,3 +184,31 @@ export const api = {
   delete: <T>(path: string, options?: ApiFetchOptions) =>
     apiFetch<T>(path, { ...options, method: "DELETE" }),
 };
+
+/** Respuesta paginada de DRF (PageNumberPagination). */
+interface Page<T> {
+  count: number;
+  next: string | null;
+  results: T[];
+}
+
+/**
+ * Recorre TODAS las páginas de un endpoint paginado y devuelve los resultados
+ * aplanados. Úsalo en vistas que necesitan el conjunto completo (dashboard,
+ * reportes, agenda, cronograma, buscadores), no en tablas con paginación.
+ *
+ * @param path Ruta con su query, p. ej. "/pacientes/?search=juan".
+ */
+export async function fetchAllPages<T>(path: string): Promise<T[]> {
+  const sep = path.includes("?") ? "&" : "?";
+  const out: T[] = [];
+  let page = 1;
+  // Tope de seguridad para nunca ciclar de forma indefinida.
+  for (let guard = 0; guard < 1000; guard++) {
+    const data = await api.get<Page<T>>(`${path}${sep}page=${page}`);
+    out.push(...data.results);
+    if (!data.next) break;
+    page += 1;
+  }
+  return out;
+}

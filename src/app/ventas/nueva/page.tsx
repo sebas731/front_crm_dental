@@ -11,8 +11,8 @@ import { Input, Select } from "@/components/ui/Field";
 import { PacientePicker } from "@/components/ui/PacientePicker";
 import { ServicioSelect } from "@/components/servicios/ServicioSelect";
 import { generarCuotas, type Frecuencia } from "@/lib/cuotas";
-import { listServicios } from "@/services/citas";
-import { listPacientes } from "@/services/pacientes";
+import { listAllServicios } from "@/services/citas";
+import { listAllPacientes } from "@/services/pacientes";
 import {
   addAdicional,
   addDescuento,
@@ -60,11 +60,11 @@ export default function NuevaVentaPage() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([listPacientes(), listServicios()])
+    Promise.all([listAllPacientes(), listAllServicios()])
       .then(([p, s]) => {
         if (!active) return;
-        setPacientes(p.results);
-        setServicios(s.results);
+        setPacientes(p);
+        setServicios(s);
       })
       .catch(() => {});
     return () => {

@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Field";
+import { Pagination } from "@/components/ui/Pagination";
 import { mensajeError } from "@/lib/apiError";
 import {
   createMedico,
@@ -26,6 +27,8 @@ const EMPTY: MedicoInput = {
 
 export default function MedicosPage() {
   const [medicos, setMedicos] = useState<Medico[]>([]);
+  const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<MedicoInput>(EMPTY);
@@ -34,10 +37,11 @@ export default function MedicosPage() {
 
   useEffect(() => {
     let active = true;
-    listMedicos()
+    listMedicos({ page })
       .then((r) => {
         if (!active) return;
         setMedicos(r.results);
+        setCount(r.count);
         setLoading(false);
       })
       .catch(() => {
@@ -46,10 +50,17 @@ export default function MedicosPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [page]);
+
+  function goPage(p: number) {
+    setLoading(true);
+    setPage(p);
+  }
 
   async function reload() {
-    setMedicos((await listMedicos()).results);
+    const r = await listMedicos({ page });
+    setMedicos(r.results);
+    setCount(r.count);
   }
 
   function set<K extends keyof MedicoInput>(k: K, v: MedicoInput[K]) {
@@ -213,6 +224,8 @@ export default function MedicosPage() {
           </tbody>
         </table>
       </div>
+
+      {!loading && <Pagination page={page} count={count} onPage={goPage} />}
     </AppShell>
   );
 }

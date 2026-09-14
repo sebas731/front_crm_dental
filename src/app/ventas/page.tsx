@@ -6,22 +6,39 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ESTADO_VENTA, TIPO_PAGO } from "@/lib/estados";
+import { Pagination } from "@/components/ui/Pagination";
 import { listVentas } from "@/services/ventas";
-import { listPacientes } from "@/services/pacientes";
+import { listAllPacientes } from "@/services/pacientes";
 import type { Paciente, Venta } from "@/types";
 
 export default function VentasPage() {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+
+  // Los pacientes se traen completos (solo para resolver el nombre en la
+  // tabla); las ventas van paginadas de a 15.
+  useEffect(() => {
+    let active = true;
+    listAllPacientes()
+      .then((p) => {
+        if (active) setPacientes(p);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
-    Promise.all([listVentas(), listPacientes()])
-      .then(([v, p]) => {
+    listVentas({ page })
+      .then((v) => {
         if (!active) return;
         setVentas(v.results);
-        setPacientes(p.results);
+        setCount(v.count);
         setLoading(false);
       })
       .catch(() => {
@@ -30,7 +47,12 @@ export default function VentasPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [page]);
+
+  function goPage(p: number) {
+    setLoading(true);
+    setPage(p);
+  }
 
   const pacienteName = (id: string) => {
     const p = pacientes.find((x) => x.id === id);
@@ -41,7 +63,7 @@ export default function VentasPage() {
     <AppShell>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-slate-800 md:text-2xl">
-          Ventas ({ventas.length})
+          Ventas ({count})
         </h1>
         <Link href="/ventas/nueva">
           <Button>Nueva venta</Button>
@@ -102,6 +124,8 @@ export default function VentasPage() {
           </tbody>
         </table>
       </div>
+
+      {!loading && <Pagination page={page} count={count} onPage={goPage} />}
     </AppShell>
   );
 }

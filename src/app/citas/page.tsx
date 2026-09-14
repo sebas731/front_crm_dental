@@ -22,8 +22,8 @@ import {
   type PeriodoRango,
 } from "@/lib/filtros";
 import { esMedico, puedeCrearCitas } from "@/lib/roles";
-import { listCitas, listMedicos, listServicios } from "@/services/citas";
-import { listPacientes } from "@/services/pacientes";
+import { listAllCitas, listAllMedicos, listAllServicios } from "@/services/citas";
+import { listAllPacientes } from "@/services/pacientes";
 import type { Cita, Medico, Paciente, ServicioDental } from "@/types";
 
 export default function CitasPage() {
@@ -49,27 +49,32 @@ export default function CitasPage() {
 
   async function load() {
     const [c, p, m, s] = await Promise.all([
-      listCitas(),
-      listPacientes(),
-      listMedicos(),
-      listServicios(),
+      listAllCitas(),
+      listAllPacientes(),
+      listAllMedicos(),
+      listAllServicios(),
     ]);
-    setCitas(c.results);
-    setPacientes(p.results);
-    setMedicos(m.results);
-    setServicios(s.results);
+    setCitas(c);
+    setPacientes(p);
+    setMedicos(m);
+    setServicios(s);
     setLoading(false);
   }
 
   useEffect(() => {
     let active = true;
-    Promise.all([listCitas(), listPacientes(), listMedicos(), listServicios()])
+    Promise.all([
+      listAllCitas(),
+      listAllPacientes(),
+      listAllMedicos(),
+      listAllServicios(),
+    ])
       .then(([c, p, m, s]) => {
         if (!active) return;
-        setCitas(c.results);
-        setPacientes(p.results);
-        setMedicos(m.results);
-        setServicios(s.results);
+        setCitas(c);
+        setPacientes(p);
+        setMedicos(m);
+        setServicios(s);
         setLoading(false);
       })
       .catch(() => {

@@ -20,12 +20,12 @@ import { ApiError } from "@/services/api";
 import { esAdministrativo, puedeRegistrarPacientes } from "@/lib/roles";
 import { createHistoria, getHistoriaByPaciente } from "@/services/historia";
 import {
+  listAllMedicos,
+  listAllServicios,
   listCitasByPaciente,
-  listMedicos,
-  listServicios,
 } from "@/services/citas";
 import { getPaciente, updatePaciente } from "@/services/pacientes";
-import { listVentas } from "@/services/ventas";
+import { listAllVentas } from "@/services/ventas";
 import type {
   Cita,
   HistoriaClinica,
@@ -66,16 +66,16 @@ export default function PacienteDetailPage({
       getPaciente(id),
       getHistoriaByPaciente(id),
       listCitasByPaciente(id),
-      listMedicos(),
-      listServicios(),
+      listAllMedicos(),
+      listAllServicios(),
     ])
       .then(([p, h, c, m, s]) => {
         if (!active) return;
         setPaciente(p);
         setHistoria(h);
-        setCitas(c.results);
-        setMedicos(m.results);
-        setServicios(s.results);
+        setCitas(c);
+        setMedicos(m);
+        setServicios(s);
         setLoading(false);
       })
       .catch((err) => {
@@ -93,9 +93,9 @@ export default function PacienteDetailPage({
   useEffect(() => {
     if (!puedeVerPagos) return;
     let active = true;
-    listVentas({ paciente: id })
+    listAllVentas({ paciente: id })
       .then((r) => {
-        if (active) setVentas(r.results);
+        if (active) setVentas(r);
       })
       .catch(() => {});
     return () => {

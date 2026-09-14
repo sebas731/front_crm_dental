@@ -8,7 +8,7 @@ import { Input, Select } from "@/components/ui/Field";
 import {
   createServicio,
   deleteServicio,
-  listServicios,
+  listAllServicios,
 } from "@/services/citas";
 import type { ServicioDental } from "@/types";
 
@@ -23,10 +23,10 @@ export default function ServiciosPage() {
 
   useEffect(() => {
     let active = true;
-    listServicios()
+    listAllServicios()
       .then((r) => {
         if (!active) return;
-        setServicios(r.results);
+        setServicios(r);
         setLoading(false);
       })
       .catch(() => {
@@ -38,7 +38,7 @@ export default function ServiciosPage() {
   }, []);
 
   async function reload() {
-    setServicios((await listServicios()).results);
+    setServicios(await listAllServicios());
   }
 
   const categorias = servicios.filter((s) => !s.padre);

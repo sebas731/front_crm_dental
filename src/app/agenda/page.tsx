@@ -12,9 +12,9 @@ import { Modal } from "@/components/ui/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { ESTADO_CITA } from "@/lib/estados";
 import { esMedico, puedeCrearCitas, puedeRegistrarPacientes } from "@/lib/roles";
-import { listCitas, listMedicos, listServicios } from "@/services/citas";
+import { listAllCitas, listAllMedicos, listAllServicios } from "@/services/citas";
 import { createNota, deleteNota, listNotas } from "@/services/notas";
-import { listPacientes } from "@/services/pacientes";
+import { listAllPacientes } from "@/services/pacientes";
 import type {
   Cita,
   Medico,
@@ -66,13 +66,18 @@ export default function AgendaPage() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([listCitas(), listPacientes(), listMedicos(), listServicios()])
+    Promise.all([
+      listAllCitas(),
+      listAllPacientes(),
+      listAllMedicos(),
+      listAllServicios(),
+    ])
       .then(([c, p, m, s]) => {
         if (!active) return;
-        setCitas(c.results);
-        setPacientes(p.results);
-        setMedicos(m.results);
-        setServicios(s.results);
+        setCitas(c);
+        setPacientes(p);
+        setMedicos(m);
+        setServicios(s);
         setLoading(false);
       })
       .catch(() => {
@@ -84,9 +89,9 @@ export default function AgendaPage() {
   }, []);
 
   const reloadDatos = useCallback(async () => {
-    const [c, p] = await Promise.all([listCitas(), listPacientes()]);
-    setCitas(c.results);
-    setPacientes(p.results);
+    const [c, p] = await Promise.all([listAllCitas(), listAllPacientes()]);
+    setCitas(c);
+    setPacientes(p);
   }, []);
 
   const dias = useMemo(
@@ -128,7 +133,7 @@ export default function AgendaPage() {
     const fin = new Date(weekStart);
     fin.setDate(fin.getDate() + 5);
     const r = await listNotas({ desde: ymd(weekStart), hasta: ymd(fin) });
-    setNotas(r.results);
+    setNotas(r);
   }, [weekStart]);
 
   useEffect(() => {
@@ -138,7 +143,7 @@ export default function AgendaPage() {
     fin.setDate(fin.getDate() + 5);
     listNotas({ desde: ymd(weekStart), hasta: ymd(fin) })
       .then((r) => {
-        if (active) setNotas(r.results);
+        if (active) setNotas(r);
       })
       .catch(() => {});
     return () => {

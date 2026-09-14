@@ -1,13 +1,13 @@
-import { api } from "./api";
-import type { NotaAgenda, Paginated } from "@/types";
+import { api, fetchAllPages } from "./api";
+import type { NotaAgenda } from "@/types";
 
+/** TODAS las notas de la agenda en el rango (recorre todas las páginas). */
 export function listNotas(params: {
   desde: string;
   hasta: string;
-}): Promise<Paginated<NotaAgenda>> {
+}): Promise<NotaAgenda[]> {
   const qs = new URLSearchParams(params);
-  qs.set("page_size", "300");
-  return api.get<Paginated<NotaAgenda>>(`/notas-agenda/?${qs.toString()}`);
+  return fetchAllPages<NotaAgenda>(`/notas-agenda/?${qs.toString()}`);
 }
 
 export function createNota(data: {

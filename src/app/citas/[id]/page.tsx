@@ -19,11 +19,11 @@ import { ApiError } from "@/services/api";
 import {
   deleteCita,
   getCita,
-  listMedicos,
-  listServicios,
+  listAllMedicos,
+  listAllServicios,
   updateCita,
 } from "@/services/citas";
-import { listPacientes } from "@/services/pacientes";
+import { listAllPacientes } from "@/services/pacientes";
 import type { Cita, Medico, Paciente, ServicioDental } from "@/types";
 
 export default function CitaDetailPage({
@@ -51,13 +51,18 @@ export default function CitaDetailPage({
 
   useEffect(() => {
     let active = true;
-    Promise.all([getCita(id), listMedicos(), listPacientes(), listServicios()])
+    Promise.all([
+      getCita(id),
+      listAllMedicos(),
+      listAllPacientes(),
+      listAllServicios(),
+    ])
       .then(([c, m, p, s]) => {
         if (!active) return;
         setCita(c);
-        setMedicos(m.results);
-        setPacientes(p.results);
-        setServicios(s.results);
+        setMedicos(m);
+        setPacientes(p);
+        setServicios(s);
         setLoading(false);
       })
       .catch((err) => {

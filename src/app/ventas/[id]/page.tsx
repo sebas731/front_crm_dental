@@ -18,8 +18,8 @@ import { Card } from "@/components/ui/Card";
 import { ESTADO_VENTA, TIPO_PAGO } from "@/lib/estados";
 import { ApiError } from "@/services/api";
 import { anularVenta, duplicarVenta, getVenta } from "@/services/ventas";
-import { listPacientes } from "@/services/pacientes";
-import { listServicios } from "@/services/citas";
+import { listAllPacientes } from "@/services/pacientes";
+import { listAllServicios } from "@/services/citas";
 import type { Paciente, ServicioDental, Venta } from "@/types";
 
 export default function VentaDetailPage({
@@ -40,12 +40,12 @@ export default function VentaDetailPage({
 
   useEffect(() => {
     let active = true;
-    Promise.all([getVenta(id), listPacientes(), listServicios()])
+    Promise.all([getVenta(id), listAllPacientes(), listAllServicios()])
       .then(([v, p, s]) => {
         if (!active) return;
         setVenta(v);
-        setPacientes(p.results);
-        setServicios(s.results);
+        setPacientes(p);
+        setServicios(s);
         setLoading(false);
       })
       .catch((err) => {

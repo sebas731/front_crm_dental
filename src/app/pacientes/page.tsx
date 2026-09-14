@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
+import { Pagination } from "@/components/ui/Pagination";
 import { useAuth } from "@/context/AuthContext";
 import { mensajeError } from "@/lib/apiError";
 import { PROCEDENCIA } from "@/lib/procedencia";
@@ -34,6 +35,7 @@ export default function PacientesPage() {
   const puedeEliminar = esAdministrativo(user); // borrar: solo administrativos
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -42,8 +44,11 @@ export default function PacientesPage() {
   const [saving, setSaving] = useState(false);
 
   // Fetches without a synchronous setState (safe to call from an effect).
-  const load = useCallback(async (searchTerm: string) => {
-    const res = await listPacientes({ search: searchTerm || undefined });
+  const load = useCallback(async (searchTerm: string, pageNum: number) => {
+    const res = await listPacientes({
+      search: searchTerm || undefined,
+      page: pageNum,
+    });
     setPacientes(res.results);
     setCount(res.count);
     setLoading(false);
@@ -51,9 +56,10 @@ export default function PacientesPage() {
 
   // Reload triggered by user actions (shows the loading state first).
   const reload = useCallback(
-    async (searchTerm: string) => {
+    async (searchTerm: string, pageNum: number) => {
+      setPage(pageNum);
       setLoading(true);
-      await load(searchTerm);
+      await load(searchTerm, pageNum);
     },
     [load],
   );
@@ -69,7 +75,7 @@ export default function PacientesPage() {
 
   useEffect(() => {
     let active = true;
-    listPacientes()
+    listPacientes({ page: 1 })
       .then((res) => {
         if (!active) return;
         setPacientes(res.results);
@@ -104,7 +110,7 @@ export default function PacientesPage() {
       });
       setForm(EMPTY);
       setShowForm(false);
-      await reload(search);
+      await reload(search, 1);
     } catch (err) {
       setError(mensajeError(err, "No se pudo crear el paciente."));
     } finally {
@@ -116,7 +122,9 @@ export default function PacientesPage() {
     if (!confirm("¿Eliminar este paciente?")) return;
     try {
       await deletePaciente(id);
-      await reload(search);
+      // Si borramos el último de la página, retrocede una.
+      const nextPage = pacientes.length === 1 && page > 1 ? page - 1 : page;
+      await reload(search, nextPage);
     } catch (err) {
       // El backend protege pacientes con citas/ventas/historia (400).
       alert(mensajeError(err, "No se pudo eliminar el paciente."));
@@ -234,7 +242,7 @@ export default function PacientesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") reload(search);
+            if (e.key === "Enter") reload(search, 1);
           }}
         />
       </div>
@@ -302,6 +310,14 @@ export default function PacientesPage() {
           </tbody>
         </table>
       </div>
+
+      {!loading && (
+        <Pagination
+          page={page}
+          count={count}
+          onPage={(p) => reload(search, p)}
+        />
+      )}
     </AppShell>
   );
 }

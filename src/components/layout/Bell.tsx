@@ -4,8 +4,8 @@ import Link from "next/link";
 import { Bell as BellIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { alertasCuotas, type AlertaCuota } from "@/lib/alertas";
-import { listVentas } from "@/services/ventas";
-import { listPacientes } from "@/services/pacientes";
+import { listAllVentas } from "@/services/ventas";
+import { listAllPacientes } from "@/services/pacientes";
 import type { Paciente } from "@/types";
 
 export function Bell() {
@@ -16,11 +16,11 @@ export function Bell() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([listVentas(), listPacientes()])
+    Promise.all([listAllVentas(), listAllPacientes()])
       .then(([v, p]) => {
         if (!active) return;
-        setAlertas(alertasCuotas(v.results));
-        setPacientes(p.results);
+        setAlertas(alertasCuotas(v));
+        setPacientes(p);
       })
       .catch(() => {});
     return () => {

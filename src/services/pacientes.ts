@@ -1,20 +1,26 @@
-import { api } from "./api";
+import { api, fetchAllPages } from "./api";
 import type { Paciente, PacienteInput, Paginated } from "@/types";
 
 const BASE = "/pacientes/";
 
+/** Una página de pacientes (15/página). Para la tabla con paginación. */
 export function listPacientes(params?: {
   search?: string;
   page?: number;
-  page_size?: number;
 }): Promise<Paginated<Paciente>> {
   const qs = new URLSearchParams();
   if (params?.search) qs.set("search", params.search);
   if (params?.page) qs.set("page", String(params.page));
-  // Sin page_size explícito trae hasta 500 (el máximo del backend): así el
-  // buscador/agenda/dashboard no se quedan solo con los primeros 20.
-  qs.set("page_size", String(params?.page_size ?? 500));
   return api.get<Paginated<Paciente>>(`${BASE}?${qs.toString()}`);
+}
+
+/** TODOS los pacientes (recorre todas las páginas). Para dashboard, agenda,
+ *  reportes y los buscadores por DNI, que necesitan el conjunto completo. */
+export function listAllPacientes(search?: string): Promise<Paciente[]> {
+  const qs = new URLSearchParams();
+  if (search) qs.set("search", search);
+  const q = qs.toString();
+  return fetchAllPages<Paciente>(`${BASE}${q ? `?${q}` : ""}`);
 }
 
 export function getPaciente(id: string): Promise<Paciente> {

@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/Field";
 import { LogoMark } from "@/components/ui/Logo";
 import { cobrosPorProcedencia, pagosPorMetodo } from "@/lib/analytics";
 import { rangoDePeriodo } from "@/lib/filtros";
-import { listPacientes } from "@/services/pacientes";
-import { listVentas } from "@/services/ventas";
+import { listAllPacientes } from "@/services/pacientes";
+import { listAllVentas } from "@/services/ventas";
 import type { Paciente, Venta } from "@/types";
 
 const money = (v: number) => `S/ ${v.toFixed(2)}`;
@@ -25,11 +25,11 @@ export default function ReportesPage() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([listVentas(), listPacientes()])
+    Promise.all([listAllVentas(), listAllPacientes()])
       .then(([v, p]) => {
         if (!active) return;
-        setVentas(v.results);
-        setPacientes(p.results);
+        setVentas(v);
+        setPacientes(p);
         setLoading(false);
       })
       .catch(() => {
