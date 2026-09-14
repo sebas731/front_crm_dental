@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { NotasPanel } from "@/components/agenda/NotasPanel";
 import { CitaForm } from "@/components/citas/CitaForm";
+import { EstadoCitaFilter } from "@/components/citas/EstadoCitaFilter";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useAuth } from "@/context/AuthContext";
@@ -17,6 +18,7 @@ import { createNota, deleteNota, listNotas } from "@/services/notas";
 import { listAllPacientes } from "@/services/pacientes";
 import type {
   Cita,
+  EstadoCita,
   Medico,
   NotaAgenda,
   Paciente,
@@ -56,6 +58,7 @@ export default function AgendaPage() {
   const [medicos, setMedicos] = useState<Medico[]>([]);
   const [servicios, setServicios] = useState<ServicioDental[]>([]);
   const [modalCita, setModalCita] = useState(false);
+  const [estadosFiltro, setEstadosFiltro] = useState<EstadoCita[]>([]);
   const [weekStart, setWeekStart] = useState<Date>(() => mondayOf(new Date()));
   const [notas, setNotas] = useState<NotaAgenda[]>([]);
   const [notaSlot, setNotaSlot] = useState<{
@@ -172,6 +175,10 @@ export default function AgendaPage() {
     const key = ymd(dia);
     return citas.filter((c) => {
       if (c.fecha !== key) return false;
+      // Filtro por estado (vacío = todos).
+      if (estadosFiltro.length && !estadosFiltro.includes(c.estado)) {
+        return false;
+      }
       const h = parseInt(c.hora_inicio.slice(0, 2), 10);
       return h === hora;
     });
@@ -222,7 +229,8 @@ export default function AgendaPage() {
         )}
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <EstadoCitaFilter value={estadosFiltro} onChange={setEstadosFiltro} />
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={() => shiftWeek(-1)}>
             ←
