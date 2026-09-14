@@ -147,13 +147,19 @@ export type MedicoInput = {
   activo?: boolean;
 };
 
+export type Moneda = "PEN" | "USD";
+
 export interface ServicioDental extends BaseModel {
   padre: string | null;
+  codigo: string;
   nombre: string;
   descripcion: string;
+  moneda: Moneda;
   precio: string;
   duracion_minutos: number;
   activo: boolean;
+  /** Ids de los insumos que requiere el servicio (M2M). */
+  insumos: string[];
 }
 
 export type EstadoAtencion = "ATENDIDO" | "FALTO" | "NO_PAGO";
@@ -176,6 +182,7 @@ export interface Cita extends BaseModel {
   paciente: string;
   medico: string;
   servicio: string | null;
+  consultorio: string | null;
   fecha: string;
   hora_inicio: string;
   hora_fin: string | null;
